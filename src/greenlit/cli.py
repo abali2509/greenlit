@@ -5,6 +5,7 @@ import os
 import platform
 import subprocess
 import sys
+from pathlib import Path
 
 from rich.prompt import Confirm, Prompt
 
@@ -333,25 +334,25 @@ def main():
         return
 
     # ── walkthrough ───────────────────────────────────────────────────
-    cwd = os.path.realpath(os.getcwd())
-    templates_dir = os.path.realpath(os.path.expanduser("~/.greenlit/templates"))
+    cwd = Path(os.path.realpath(os.getcwd()))
+    templates_dir = Path(os.path.realpath(os.path.expanduser("~/.greenlit/templates")))
 
     if args.file:
-        target = os.path.realpath(os.path.abspath(args.file))
-        if not target.startswith(cwd + os.sep) and target != cwd:
+        target = Path(os.path.realpath(os.path.abspath(args.file)))
+        if not (target == cwd or target.is_relative_to(cwd)):
             console.print("  [red]Error: --file path must be within the current directory.[/]")
             sys.exit(1)
 
     if args.dir:
-        target = os.path.realpath(os.path.abspath(args.dir))
-        if not target.startswith(cwd + os.sep) and target != cwd:
+        target = Path(os.path.realpath(os.path.abspath(args.dir)))
+        if not (target == cwd or target.is_relative_to(cwd)):
             console.print("  [red]Error: --dir path must be within the current directory.[/]")
             sys.exit(1)
 
     if args.template:
-        target = os.path.realpath(os.path.abspath(args.template))
-        in_cwd = target.startswith(cwd + os.sep) or target == cwd
-        in_templates_dir = target.startswith(templates_dir + os.sep) or target == templates_dir
+        target = Path(os.path.realpath(os.path.abspath(args.template)))
+        in_cwd = target == cwd or target.is_relative_to(cwd)
+        in_templates_dir = target == templates_dir or target.is_relative_to(templates_dir)
         if not in_cwd and not in_templates_dir:
             console.print(
                 "  [red]Error: --template path must be within the current directory "

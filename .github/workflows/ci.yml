@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 jobs:
   test:
@@ -38,3 +38,25 @@ jobs:
 
       - name: Ruff check
         run: uv run --with ruff ruff check src/ tests/
+
+  wheel-smoke:
+    name: Wheel smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Assert skill.md in wheel
+        run: unzip -l dist/*.whl | grep -q "greenlit/skills/skill.md"
+
+      - name: Install wheel into clean venv and run greenlit init
+        run: |
+          python -m venv .smoke-venv
+          .smoke-venv/bin/pip install --quiet dist/*.whl
+          echo "1" | .smoke-venv/bin/greenlit init

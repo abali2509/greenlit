@@ -2,6 +2,7 @@
 
 import html
 import json
+from collections.abc import Callable
 
 from greenlit.sections import SECTIONS
 
@@ -40,7 +41,7 @@ def format_json(data: dict, task_type: str) -> str:
     return json.dumps(obj, indent=2, sort_keys=True)
 
 
-FORMATTERS: dict[str, object] = {
+FORMATTERS: dict[str, Callable[[dict, str], str]] = {
     "xml": format_xml,
     "markdown": format_markdown,
     "json": format_json,

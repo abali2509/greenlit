@@ -79,19 +79,28 @@ def show_task_selector(task_types: dict) -> str:
     table.add_column("type", style="bold", width=12)
     table.add_column("desc", style=MUTED)
 
+    short_to_full = {}
+    all_choices = []
     for key, t in task_types.items():
+        short = t.get("short", "")
         icon = t.get("icon", "")
         label = f"{icon} {t['label']}".strip() if icon else t["label"]
-        table.add_row(key, label, t["desc"])
+        display_key = f"{short}  ({key})" if short else key
+        table.add_row(display_key, label, t["desc"])
+        all_choices.append(key)
+        if short:
+            short_to_full[short] = key
+            all_choices.append(short)
 
     console.print(table)
     console.print()
 
-    return Prompt.ask(
+    answer = Prompt.ask(
         f"  [{ACCENT}]Task type[/{ACCENT}]",
-        choices=list(task_types.keys()),
+        choices=all_choices,
         show_choices=False,
     )
+    return short_to_full.get(answer, answer)
 
 
 def show_step_bar(current: int, data: dict):

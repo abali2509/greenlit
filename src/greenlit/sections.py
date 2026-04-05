@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 
 TASK_TYPES = {
-    "review":   {"label": "Review",   "desc": "Code review, PR review, architecture review"},
-    "plan":     {"label": "Plan",     "desc": "Architecture, design, task breakdown"},
-    "action":   {"label": "Action",   "desc": "Implementation, refactoring, migration"},
-    "debug":    {"label": "Debug",    "desc": "Diagnose failures, trace bugs, root cause analysis"},
-    "research": {"label": "Research", "desc": "Spikes, investigations, trade-off analysis"},
+    "review":   {"label": "Review",   "short": "r",  "desc": "Code review, PR review, architecture review"},
+    "plan":     {"label": "Plan",     "short": "p",  "desc": "Architecture, design, task breakdown"},
+    "action":   {"label": "Action",   "short": "a",  "desc": "Implementation, refactoring, migration"},
+    "debug":    {"label": "Debug",    "short": "d",  "desc": "Diagnose failures, trace bugs, root cause analysis"},
+    "research": {"label": "Research", "short": "rs", "desc": "Spikes, investigations, trade-off analysis"},
 }
 
 

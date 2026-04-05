@@ -30,8 +30,20 @@ LABEL = "bright_cyan"
 
 # ── Multi-line input ──────────────────────────────────────────────────
 
-def read_multiline(placeholder: str = "", default: str = "") -> str:
+def read_multiline(
+    placeholder: str = "",
+    default: str = "",
+    hint: str = "",
+    tips: list[str] | None = None,
+) -> str:
     """Read multi-line input. Blank line to finish."""
+    if hint:
+        console.print(f"  [{DIM}]{hint}[/{DIM}]")
+    if tips:
+        for tip in tips:
+            console.print(f"  [{DIM}]→ {tip}[/{DIM}]")
+    if hint or tips:
+        console.print()
     console.print(f"  [{DIM}]Type your content below. Blank line to finish.[/{DIM}]")
     if placeholder:
         short = placeholder[:120] + ("..." if len(placeholder) > 120 else "")
@@ -110,7 +122,7 @@ def open_editor(
         or shutil.which("vim")
     )
     if not editor:
-        return read_multiline(placeholder, default)
+        return read_multiline(placeholder, default, hint=hint, tips=tips)
 
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".md", delete=False, prefix="greenlit_"

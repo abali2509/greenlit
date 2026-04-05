@@ -245,7 +245,12 @@ def run(args, task_types: dict | None = None):
         else:
             current = data.get(section.key, "") or section.default
             if getattr(args, "no_editor", False):
-                content = read_multiline(guidance.placeholder, current)
+                content = read_multiline(
+                    guidance.placeholder,
+                    current,
+                    hint=guidance.hint,
+                    tips=guidance.tips,
+                )
             else:
                 content = open_editor(
                     guidance.placeholder,

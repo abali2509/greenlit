@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.table import Table
+from rich.text import Text
 
 from greenlit.formatters import FORMATTERS
 from greenlit.sections import SECTIONS, TASK_TYPES

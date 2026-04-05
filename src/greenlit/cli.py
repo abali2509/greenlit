@@ -243,10 +243,16 @@ def run(args, task_types: dict | None = None):
                 console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
                 console.print()
         else:
+            current = data.get(section.key, "") or section.default
             if getattr(args, "no_editor", False):
-                content = read_multiline(guidance.placeholder, section.default)
+                content = read_multiline(guidance.placeholder, current)
             else:
-                content = open_editor(guidance.placeholder, section.default)
+                content = open_editor(
+                    guidance.placeholder,
+                    current,
+                    hint=guidance.hint,
+                    tips=guidance.tips,
+                )
             if content:
                 data[section.key] = content
                 console.print(f"  [{GREEN}]✓ {section.label} saved[/{GREEN}]")

@@ -63,7 +63,44 @@ def show_transition():
     sys.stdout.flush()
 
 
-def open_editor(placeholder: str = "", default: str = "") -> str:
+_HINT_START = "<!-- greenlit-hint"
+_HINT_END = "-->"
+
+
+def _build_hint_block(hint: str, tips: list[str]) -> str:
+    lines = [_HINT_START]
+    for line in hint.splitlines():
+        lines.append(line)
+    if tips:
+        lines.append("")
+        for tip in tips:
+            lines.append(f"→ {tip}")
+    lines.append(_HINT_END)
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _strip_hint_block(text: str) -> str:
+    lines = text.splitlines()
+    out, inside = [], False
+    for line in lines:
+        if line.strip().startswith(_HINT_START):
+            inside = True
+            continue
+        if inside:
+            if line.strip() == _HINT_END:
+                inside = False
+            continue
+        out.append(line)
+    return "\n".join(out).strip()
+
+
+def open_editor(
+    placeholder: str = "",
+    default: str = "",
+    hint: str = "",
+    tips: list[str] | None = None,
+) -> str:
     """Open the user's preferred editor for section content. Falls back to read_multiline."""
     editor = (
         os.environ.get("VISUAL")
@@ -77,6 +114,8 @@ def open_editor(placeholder: str = "", default: str = "") -> str:
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".md", delete=False, prefix="greenlit_"
     ) as f:
+        if hint or tips:
+            f.write(_build_hint_block(hint, tips or []))
         if default:
             f.write(default)
         tmp_path = f.name
@@ -84,7 +123,8 @@ def open_editor(placeholder: str = "", default: str = "") -> str:
     try:
         subprocess.run([editor, tmp_path], check=False)
         with open(tmp_path) as f:
-            return f.read().strip()
+            raw = f.read()
+        return _strip_hint_block(raw)
     finally:
         try:
             os.unlink(tmp_path)

@@ -24,6 +24,7 @@ from greenlit.display import (
     show_step_bar,
     show_task_selector,
     show_tips,
+    show_transition,
 )
 from greenlit.formatters import FORMATTERS
 from greenlit.guidance import get_guidance
@@ -157,10 +158,13 @@ def run(args, task_types: dict | None = None):
                 console.print(f"  [{ORANGE}]{msg}[/{ORANGE}]")
                 console.print()
             else:
+                show_transition()
                 step += 1
         elif action in ("b", "back"):
+            show_transition()
             step = max(0, step - 1)
         elif action in ("s", "skip"):
+            show_transition()
             step += 1
         elif action in ("p", "preview"):
             fmt = args.output

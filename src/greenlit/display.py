@@ -4,9 +4,11 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 
 from rich import box
 from rich.console import Console
+from rich.live import Live
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.rule import Rule
@@ -55,6 +57,16 @@ def read_multiline(placeholder: str = "", default: str = "") -> str:
         lines.append(line)
 
     return "\n".join(lines).strip()
+
+
+def show_transition():
+    """Clear the screen and render a brief animated transition."""
+    console.clear()
+    frames = ["·", "· ·", "· · ·"]
+    with Live(console=console, refresh_per_second=10, transient=True) as live:
+        for frame in frames:
+            live.update(Text(f"  {frame}", style=DIM))
+            time.sleep(0.1)
 
 
 def open_editor(placeholder: str = "", default: str = "") -> str:

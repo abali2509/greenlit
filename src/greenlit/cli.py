@@ -261,6 +261,15 @@ def main():
         description="Structure prompts before you burn tokens.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # ── init subcommand ───────────────────────────────────────────────
+    subparsers.add_parser(
+        "init",
+        help="Install the greenlit agent skill into .claude/skills/ or .github/",
+    )
+
+    # ── run (default walkthrough) — flags on the root parser ─────────
     parser.add_argument(
         "--type", "-t",
         choices=list(TASK_TYPES.keys()),
@@ -303,6 +312,16 @@ def main():
 
     args = parser.parse_args()
 
+    # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "init":
+        from greenlit.init_cmd import run_init
+        try:
+            run_init()
+        except KeyboardInterrupt:
+            console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
+        return
+
+    # ── walkthrough ───────────────────────────────────────────────────
     cwd = os.path.realpath(os.getcwd())
     templates_dir = os.path.realpath(os.path.expanduser("~/.greenlit/templates"))
 

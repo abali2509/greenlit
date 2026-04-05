@@ -47,6 +47,34 @@ def _copy_to_clipboard(text: str) -> bool:
         return False
 
 
+def _resolve_output_path(root_dir: str, name: str, task_type: str, fmt: str) -> str:
+    """Return <root_dir>/<name>/<task_type>.<ext>, appending _2, _3 … on collision."""
+    ext = fmt if fmt != "markdown" else "md"
+    base = os.path.join(root_dir, name, f"{task_type}.{ext}")
+    if not os.path.exists(base):
+        return base
+    counter = 2
+    while True:
+        candidate = os.path.join(root_dir, name, f"{task_type}_{counter}.{ext}")
+        if not os.path.exists(candidate):
+            return candidate
+        counter += 1
+
+
+def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
+    """Create the output directory and add .greenlit/ to .gitignore if applicable."""
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    default_root = os.path.realpath(os.path.join(cwd, ".greenlit"))
+    if os.path.realpath(root_dir) == default_root:
+        gitignore = os.path.join(cwd, ".gitignore")
+        if os.path.exists(gitignore):
+            with open(gitignore) as f:
+                existing = f.read()
+            if ".greenlit/" not in existing and ".greenlit\n" not in existing:
+                with open(gitignore, "a") as f:
+                    f.write("\n.greenlit/\n")
+
+
 def run(args, task_types: dict | None = None):
     if task_types is None:
         task_types = TASK_TYPES
@@ -60,6 +88,14 @@ def run(args, task_types: dict | None = None):
         console.print()
     else:
         task_type = show_task_selector(task_types)
+
+    prompt_name = getattr(args, "name", None) or ""
+    if not prompt_name:
+        prompt_name = Prompt.ask(
+            f"  [{ACCENT}]Prompt name[/{ACCENT}]",
+            default=task_type,
+        )
+    console.print()
 
     from rich.rule import Rule
     console.print(
@@ -92,10 +128,13 @@ def run(args, task_types: dict | None = None):
                     show_output(data, task_type, fmt)
                     console.print()
                 elif action == "save":
-                    ext = fmt if fmt != "markdown" else "md"
-                    filename = args.file or f"greenlit_{task_type}.{ext}"
                     output = FORMATTERS[fmt](data, task_type)
-                    os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+                    if args.file:
+                        filename = args.file
+                    else:
+                        root_dir = getattr(args, "dir", ".greenlit")
+                        filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
+                        _provision_output_dir(filename, root_dir, os.getcwd())
                     with open(filename, "w") as f:
                         f.write(output)
                     console.print(f"  [{GREEN}]Saved to {filename}[/]")
@@ -175,9 +214,12 @@ def run(args, task_types: dict | None = None):
             msg = "You have content — save before quitting?"
             if data and Confirm.ask(f"  [{ORANGE}]{msg}[/{ORANGE}]"):
                 fmt = args.output
-                ext = fmt if fmt != "markdown" else "md"
-                filename = args.file or f"greenlit_{task_type}.{ext}"
-                os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+                if args.file:
+                    filename = args.file
+                else:
+                    root_dir = getattr(args, "dir", ".greenlit")
+                    filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
+                    _provision_output_dir(filename, root_dir, os.getcwd())
                 with open(filename, "w") as f:
                     f.write(FORMATTERS[fmt](data, task_type))
                 console.print(f"  [{GREEN}]Saved to {filename}[/]")
@@ -232,7 +274,16 @@ def main():
     )
     parser.add_argument(
         "--file", "-f",
-        help="Output filename (default: greenlit_<type>.<ext>)",
+        help="Full output path (overrides --dir / --name)",
+    )
+    parser.add_argument(
+        "--dir", "-d",
+        default=".greenlit",
+        help="Root output directory (default: .greenlit/)",
+    )
+    parser.add_argument(
+        "--name", "-n",
+        help="Prompt namespace slug, e.g. auth-refactor (prompted if omitted)",
     )
     parser.add_argument(
         "--copy", "-c",
@@ -259,6 +310,12 @@ def main():
         target = os.path.realpath(os.path.abspath(args.file))
         if not target.startswith(cwd + os.sep) and target != cwd:
             console.print("  [red]Error: --file path must be within the current directory.[/]")
+            sys.exit(1)
+
+    if args.dir:
+        target = os.path.realpath(os.path.abspath(args.dir))
+        if not target.startswith(cwd + os.sep) and target != cwd:
+            console.print("  [red]Error: --dir path must be within the current directory.[/]")
             sys.exit(1)
 
     if args.template:

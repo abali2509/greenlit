@@ -1,5 +1,10 @@
 """Rich-based terminal display and multi-line input."""
 
+import os
+import shutil
+import subprocess
+import tempfile
+
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
@@ -50,6 +55,35 @@ def read_multiline(placeholder: str = "", default: str = "") -> str:
         lines.append(line)
 
     return "\n".join(lines).strip()
+
+
+def open_editor(placeholder: str = "", default: str = "") -> str:
+    """Open the user's preferred editor for section content. Falls back to read_multiline."""
+    editor = (
+        os.environ.get("VISUAL")
+        or os.environ.get("EDITOR")
+        or shutil.which("nvim")
+        or shutil.which("vim")
+    )
+    if not editor:
+        return read_multiline(placeholder, default)
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".md", delete=False, prefix="greenlit_"
+    ) as f:
+        if default:
+            f.write(default)
+        tmp_path = f.name
+
+    try:
+        subprocess.run([editor, tmp_path], check=False)
+        with open(tmp_path) as f:
+            return f.read().strip()
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 # ── Display helpers ───────────────────────────────────────────────────

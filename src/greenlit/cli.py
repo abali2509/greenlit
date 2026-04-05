@@ -15,6 +15,7 @@ from greenlit.display import (
     MUTED,
     ORANGE,
     console,
+    open_editor,
     read_multiline,
     show_header,
     show_nav_help,
@@ -196,7 +197,10 @@ def run(args, task_types: dict | None = None):
                 console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
                 console.print()
         else:
-            content = read_multiline(guidance.placeholder, section.default)
+            if getattr(args, "no_editor", False):
+                content = read_multiline(guidance.placeholder, section.default)
+            else:
+                content = open_editor(guidance.placeholder, section.default)
             if content:
                 data[section.key] = content
                 console.print(f"  [{GREEN}]✓ {section.label} saved[/{GREEN}]")
@@ -230,6 +234,11 @@ def main():
         "--copy", "-c",
         action="store_true",
         help="Copy output to clipboard after saving",
+    )
+    parser.add_argument(
+        "--no-editor",
+        action="store_true",
+        help="Use inline input instead of opening vim/nvim",
     )
     parser.add_argument(
         "--template", "-T",

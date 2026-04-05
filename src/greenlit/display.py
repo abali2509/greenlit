@@ -1,0 +1,166 @@
+"""Rich-based terminal display and multi-line input."""
+
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
+
+from greenlit.formatters import FORMATTERS
+from greenlit.sections import SECTIONS, TASK_TYPES
+
+console = Console()
+
+# ── Colour constants ──────────────────────────────────────────────────
+ACCENT = "bright_green"
+DIM = "bright_black"
+MUTED = "grey62"
+GREEN = "green3"
+ORANGE = "dark_orange"
+LABEL = "bright_cyan"
+
+
+# ── Multi-line input ──────────────────────────────────────────────────
+
+def read_multiline(placeholder: str = "", default: str = "") -> str:
+    """Read multi-line input. Blank line to finish."""
+    console.print(f"  [{DIM}]Type your content below. Blank line to finish.[/{DIM}]")
+    if placeholder:
+        short = placeholder[:120] + ("..." if len(placeholder) > 120 else "")
+        console.print(f"  [{DIM}]e.g. {short}[/{DIM}]")
+    if default:
+        console.print(f"  [{DIM}]defaults pre-filled — edit or replace:[/{DIM}]")
+    console.print()
+
+    lines = list(default.splitlines()) if default else []
+    for pre in lines:
+        console.print(f"  [{MUTED}]│ {pre}[/]")
+    if lines:
+        console.print()
+
+    while True:
+        try:
+            line = input("  │ ")
+        except (EOFError, KeyboardInterrupt):
+            break
+        if line == "" and lines:
+            break
+        lines.append(line)
+
+    return "\n".join(lines).strip()
+
+
+# ── Display helpers ───────────────────────────────────────────────────
+
+def show_header():
+    console.print()
+    console.print(
+        Panel(
+            Text("greenlit", style=f"bold {ACCENT}", justify="center"),
+            subtitle="structure prompts before you burn tokens",
+            subtitle_align="center",
+            border_style=DIM,
+            padding=(1, 4),
+        )
+    )
+    console.print()
+
+
+def show_task_selector(task_types: dict) -> str:
+    table = Table(
+        box=box.SIMPLE_HEAVY,
+        border_style=DIM,
+        show_header=False,
+        padding=(0, 2),
+    )
+    table.add_column("key", style=f"bold {ACCENT}", width=10)
+    table.add_column("type", style="bold", width=12)
+    table.add_column("desc", style=MUTED)
+
+    for key, t in task_types.items():
+        icon = t.get("icon", "")
+        label = f"{icon} {t['label']}".strip() if icon else t["label"]
+        table.add_row(key, label, t["desc"])
+
+    console.print(table)
+    console.print()
+
+    return Prompt.ask(
+        f"  [{ACCENT}]Task type[/{ACCENT}]",
+        choices=list(task_types.keys()),
+        show_choices=False,
+    )
+
+
+def show_step_bar(current: int, data: dict):
+    parts = []
+    for i, s in enumerate(SECTIONS):
+        filled = bool(data.get(s.key, "").strip())
+        if i == current:
+            parts.append(f"[bold {ACCENT}]▸ {s.label}[/]")
+        elif filled:
+            parts.append(f"[{GREEN}]✓ {s.label}[/]")
+        else:
+            parts.append(f"[{DIM}]  {s.label}[/]")
+
+    console.print("  " + "  ".join(parts))
+    console.print()
+
+
+def show_section_header(section, guidance, step: int):
+    g = guidance
+
+    console.print(
+        f"  [{ACCENT} bold]{section.label}[/]  [{DIM}]{step + 1}/{len(SECTIONS)}[/]"
+    )
+    console.print(f"  [{MUTED}]{section.tagline}[/]")
+    console.print()
+    console.print(
+        Panel(
+            g.hint,
+            border_style=DIM,
+            padding=(0, 2),
+            width=min(console.width - 4, 90),
+        )
+    )
+    console.print()
+
+
+def show_tips(tips: list[str]):
+    console.print(f"  [{DIM}]what makes this section land[/]")
+    for tip in tips:
+        console.print(f"  [{DIM}]→[/] [{MUTED}]{tip}[/]")
+    console.print()
+
+
+def show_output(data: dict, task_type: str, fmt: str):
+    formatter = FORMATTERS[fmt]
+    output = formatter(data, task_type)
+
+    filled = sum(1 for s in SECTIONS if data.get(s.key, "").strip())
+    label = TASK_TYPES[task_type]["label"]
+
+    console.print()
+    console.print(
+        Rule(
+            f" {label} prompt  ·  {filled}/{len(SECTIONS)} sections  ·  {fmt} ",
+            style=ACCENT,
+        )
+    )
+    console.print()
+    console.print(
+        Panel(
+            output,
+            border_style=DIM,
+            padding=(1, 2),
+        )
+    )
+
+
+def show_nav_help():
+    console.print(
+        f"  [{DIM}]commands: (n)ext  (b)ack  (s)kip  (p)review  (e)dit  (q)uit[/]"
+    )
+    console.print()

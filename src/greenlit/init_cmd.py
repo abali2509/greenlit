@@ -8,7 +8,7 @@ from rich.prompt import Prompt
 from greenlit.display import ACCENT, DIM, GREEN, ORANGE, console
 
 _TARGETS = {
-    "1": (".claude/skills", "read-greenlit-prompt.md"),
+    "1": (".claude/skills/greenlit-Read", "SKILL.md"),
     "2": (".github", "read-greenlit-prompt.md"),
 }
 
@@ -37,4 +37,4 @@ def run_init() -> None:
         f.write(skill_text)
 
     console.print(f"\n  [{GREEN}]Skill written to {dest}[/]")
-    console.print(f"  [{DIM}]Invoke it with /read-greenlit-prompt in your agent.[/]\n")
+    console.print(f"  [{DIM}]Invoke it with /greenlit-Read in your agent.[/]\n")

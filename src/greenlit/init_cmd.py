@@ -5,7 +5,7 @@ import os
 
 from rich.prompt import Prompt
 
-from greenlit.display import ACCENT, DIM, GREEN, ORANGE, console
+from greenlit.display import ACCENT, DIM, GREEN, console
 
 _TARGETS = {
     "1": (".claude/skills/greenlit-Read", "SKILL.md"),

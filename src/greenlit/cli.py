@@ -5,6 +5,7 @@ import os
 import platform
 import subprocess
 import sys
+from pathlib import Path
 
 from rich.prompt import Confirm, Prompt
 
@@ -15,6 +16,7 @@ from greenlit.display import (
     MUTED,
     ORANGE,
     console,
+    open_editor,
     read_multiline,
     show_header,
     show_nav_help,
@@ -23,6 +25,7 @@ from greenlit.display import (
     show_step_bar,
     show_task_selector,
     show_tips,
+    show_transition,
 )
 from greenlit.formatters import FORMATTERS
 from greenlit.guidance import get_guidance
@@ -41,8 +44,36 @@ def _copy_to_clipboard(text: str) -> bool:
     try:
         proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
         return proc.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.SubprocessError):
         return False
+
+
+def _resolve_output_path(root_dir: str, name: str, task_type: str, fmt: str) -> str:
+    """Return <root_dir>/<name>/<task_type>.<ext>, appending _2, _3 … on collision."""
+    ext = fmt if fmt != "markdown" else "md"
+    base = os.path.join(root_dir, name, f"{task_type}.{ext}")
+    if not os.path.exists(base):
+        return base
+    counter = 2
+    while True:
+        candidate = os.path.join(root_dir, name, f"{task_type}_{counter}.{ext}")
+        if not os.path.exists(candidate):
+            return candidate
+        counter += 1
+
+
+def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
+    """Create the output directory and add .greenlit/ to .gitignore if applicable."""
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    default_root = os.path.realpath(os.path.join(cwd, ".greenlit"))
+    if os.path.realpath(root_dir) == default_root:
+        gitignore = os.path.join(cwd, ".gitignore")
+        if os.path.exists(gitignore):
+            with open(gitignore) as f:
+                existing = f.read()
+            if ".greenlit/" not in existing and ".greenlit\n" not in existing:
+                with open(gitignore, "a") as f:
+                    f.write("\n.greenlit/\n")
 
 
 def run(args, task_types: dict | None = None):
@@ -58,6 +89,14 @@ def run(args, task_types: dict | None = None):
         console.print()
     else:
         task_type = show_task_selector(task_types)
+
+    prompt_name = getattr(args, "name", None) or ""
+    if not prompt_name:
+        prompt_name = Prompt.ask(
+            f"  [{ACCENT}]Prompt name[/{ACCENT}]",
+            default=task_type,
+        )
+    console.print()
 
     from rich.rule import Rule
     console.print(
@@ -90,10 +129,13 @@ def run(args, task_types: dict | None = None):
                     show_output(data, task_type, fmt)
                     console.print()
                 elif action == "save":
-                    ext = fmt if fmt != "markdown" else "md"
-                    filename = args.file or f"greenlit_{task_type}.{ext}"
                     output = FORMATTERS[fmt](data, task_type)
-                    os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+                    if args.file:
+                        filename = args.file
+                    else:
+                        root_dir = getattr(args, "dir", ".greenlit")
+                        filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
+                        _provision_output_dir(filename, root_dir, os.getcwd())
                     with open(filename, "w") as f:
                         f.write(output)
                     console.print(f"  [{GREEN}]Saved to {filename}[/]")
@@ -156,10 +198,13 @@ def run(args, task_types: dict | None = None):
                 console.print(f"  [{ORANGE}]{msg}[/{ORANGE}]")
                 console.print()
             else:
+                show_transition()
                 step += 1
         elif action in ("b", "back"):
+            show_transition()
             step = max(0, step - 1)
         elif action in ("s", "skip"):
+            show_transition()
             step += 1
         elif action in ("p", "preview"):
             fmt = args.output
@@ -170,9 +215,12 @@ def run(args, task_types: dict | None = None):
             msg = "You have content — save before quitting?"
             if data and Confirm.ask(f"  [{ORANGE}]{msg}[/{ORANGE}]"):
                 fmt = args.output
-                ext = fmt if fmt != "markdown" else "md"
-                filename = args.file or f"greenlit_{task_type}.{ext}"
-                os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+                if args.file:
+                    filename = args.file
+                else:
+                    root_dir = getattr(args, "dir", ".greenlit")
+                    filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
+                    _provision_output_dir(filename, root_dir, os.getcwd())
                 with open(filename, "w") as f:
                     f.write(FORMATTERS[fmt](data, task_type))
                 console.print(f"  [{GREEN}]Saved to {filename}[/]")
@@ -196,7 +244,21 @@ def run(args, task_types: dict | None = None):
                 console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
                 console.print()
         else:
-            content = read_multiline(guidance.placeholder, section.default)
+            current = data.get(section.key, "") or section.default
+            if getattr(args, "no_editor", False):
+                content = read_multiline(
+                    guidance.placeholder,
+                    current,
+                    hint=guidance.hint,
+                    tips=guidance.tips,
+                )
+            else:
+                content = open_editor(
+                    guidance.placeholder,
+                    current,
+                    hint=guidance.hint,
+                    tips=guidance.tips,
+                )
             if content:
                 data[section.key] = content
                 console.print(f"  [{GREEN}]✓ {section.label} saved[/{GREEN}]")
@@ -211,6 +273,15 @@ def main():
         description="Structure prompts before you burn tokens.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # ── init subcommand ───────────────────────────────────────────────
+    subparsers.add_parser(
+        "init",
+        help="Install the greenlit agent skill into .claude/skills/ or .github/",
+    )
+
+    # ── run (default walkthrough) — flags on the root parser ─────────
     parser.add_argument(
         "--type", "-t",
         choices=list(TASK_TYPES.keys()),
@@ -224,12 +295,26 @@ def main():
     )
     parser.add_argument(
         "--file", "-f",
-        help="Output filename (default: greenlit_<type>.<ext>)",
+        help="Full output path (overrides --dir / --name)",
+    )
+    parser.add_argument(
+        "--dir", "-d",
+        default=".greenlit",
+        help="Root output directory (default: .greenlit/)",
+    )
+    parser.add_argument(
+        "--name", "-n",
+        help="Prompt namespace slug, e.g. auth-refactor (prompted if omitted)",
     )
     parser.add_argument(
         "--copy", "-c",
         action="store_true",
         help="Copy output to clipboard after saving",
+    )
+    parser.add_argument(
+        "--no-editor",
+        action="store_true",
+        help="Use inline input instead of opening vim/nvim",
     )
     parser.add_argument(
         "--template", "-T",
@@ -239,19 +324,35 @@ def main():
 
     args = parser.parse_args()
 
-    cwd = os.path.realpath(os.getcwd())
-    templates_dir = os.path.realpath(os.path.expanduser("~/.greenlit/templates"))
+    # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "init":
+        from greenlit.init_cmd import run_init
+        try:
+            run_init()
+        except KeyboardInterrupt:
+            console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
+        return
+
+    # ── walkthrough ───────────────────────────────────────────────────
+    cwd = Path(os.path.realpath(os.getcwd()))
+    templates_dir = Path(os.path.realpath(os.path.expanduser("~/.greenlit/templates")))
 
     if args.file:
-        target = os.path.realpath(os.path.abspath(args.file))
-        if not target.startswith(cwd + os.sep) and target != cwd:
+        target = Path(os.path.realpath(os.path.abspath(args.file)))
+        if not (target == cwd or target.is_relative_to(cwd)):
             console.print("  [red]Error: --file path must be within the current directory.[/]")
             sys.exit(1)
 
+    if args.dir:
+        target = Path(os.path.realpath(os.path.abspath(args.dir)))
+        if not (target == cwd or target.is_relative_to(cwd)):
+            console.print("  [red]Error: --dir path must be within the current directory.[/]")
+            sys.exit(1)
+
     if args.template:
-        target = os.path.realpath(os.path.abspath(args.template))
-        in_cwd = target.startswith(cwd + os.sep) or target == cwd
-        in_templates_dir = target.startswith(templates_dir + os.sep) or target == templates_dir
+        target = Path(os.path.realpath(os.path.abspath(args.template)))
+        in_cwd = target == cwd or target.is_relative_to(cwd)
+        in_templates_dir = target == templates_dir or target.is_relative_to(templates_dir)
         if not in_cwd and not in_templates_dir:
             console.print(
                 "  [red]Error: --template path must be within the current directory "

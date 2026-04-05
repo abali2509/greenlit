@@ -25,6 +25,24 @@ pip install -e .
 pip install -e ".[templates]"    # adds YAML template support
 ```
 
+### Global install
+
+To use `greenlit` as a standalone command without prefixing `uv run`:
+
+**uv tool** (recommended if you use uv):
+```bash
+uv tool install .                      # from source
+uv tool install ".[templates]"        # with YAML template support
+```
+
+**pipx**:
+```bash
+pipx install .                         # from source
+pipx install ".[templates]"           # with YAML template support
+```
+
+Both methods install `greenlit` into an isolated environment and add it to `~/.local/bin`. Make sure `~/.local/bin` is on your `PATH`.
+
 <!-- ### From PyPI (coming soon)
 ```bash
 pip install greenlit

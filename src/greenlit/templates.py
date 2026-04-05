@@ -8,10 +8,10 @@ from greenlit.guidance import get_guidance
 from greenlit.sections import Section, SectionGuidance, get_sections
 
 
-def load_template(path: str) -> tuple[dict, list[Section]]:
-    """Load a YAML template file and return (task_type_meta, sections).
+def load_template(path: str) -> tuple[str, dict, list[Section]]:
+    """Load a YAML template file and return (name, task_type_meta, sections).
 
-    The task_type_meta dict has keys: name, label, icon (optional), description.
+    The task_type_meta dict has keys: label, icon (optional), description.
     Sections not defined in the YAML fall back to the base type specified by `extends`.
 
     Raises:

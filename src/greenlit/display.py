@@ -125,7 +125,7 @@ def show_task_selector(task_types: dict) -> str:
         short = t.get("short", "")
         icon = t.get("icon", "")
         label = f"{icon} {t['label']}".strip() if icon else t["label"]
-        display_key = f"{short}  ({key})" if short else key
+        display_key = short if short else key
         table.add_row(display_key, label, t["desc"])
         all_choices.append(key)
         if short:

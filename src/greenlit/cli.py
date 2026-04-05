@@ -44,7 +44,7 @@ def _copy_to_clipboard(text: str) -> bool:
     try:
         proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
         return proc.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.SubprocessError):
         return False
 
 

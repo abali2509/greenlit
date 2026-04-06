@@ -1,12 +1,11 @@
 """Rich-based terminal display and multi-line input."""
 
 import os
+import readline  # noqa: F401 — enables arrow-key navigation and history in input()
 import shutil
 import subprocess
 import sys
 import tempfile
-
-import readline  # noqa: F401 — enables arrow-key navigation and history in input()
 
 from rich import box
 from rich.console import Console

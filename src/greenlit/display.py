@@ -9,6 +9,17 @@ import subprocess
 import sys
 import tempfile
 
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
+
+from greenlit.formatters import FORMATTERS
+from greenlit.sections import SECTIONS, TASK_TYPES
+
 # readline miscounts ANSI escape sequences in prompts (treats them as printable).
 # Wrap every non-printing sequence in RL_PROMPT_START_IGNORE / RL_PROMPT_END_IGNORE
 # so readline measures the visible width correctly — fixes Home/End/arrow chaos on
@@ -23,17 +34,6 @@ def _rl_safe_input(prompt=""):
 
 
 builtins.input = _rl_safe_input
-
-from rich import box
-from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.rule import Rule
-from rich.table import Table
-from rich.text import Text
-
-from greenlit.formatters import FORMATTERS
-from greenlit.sections import SECTIONS, TASK_TYPES
 
 console = Console()
 

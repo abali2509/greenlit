@@ -1,5 +1,8 @@
 # greenlit
 
+[![CI](https://github.com/abali2509/greenlit/actions/workflows/ci.yml/badge.svg)](https://github.com/abali2509/greenlit/actions/workflows/ci.yml)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 Structure prompts before you burn tokens.
 
 A CLI walkthrough that guides you through nine prompt sections — ASK, GOAL, CONTEXT, SCOPE, DELEGATION, INPUTS, OUTPUTS, CONSTRAINT, ATTENTION — with task-specific guidance at every step.

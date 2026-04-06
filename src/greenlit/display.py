@@ -1,11 +1,28 @@
 """Rich-based terminal display and multi-line input."""
 
+import builtins
 import os
+import re as _re
 import readline  # noqa: F401 — enables arrow-key navigation and history in input()
 import shutil
 import subprocess
 import sys
 import tempfile
+
+# readline miscounts ANSI escape sequences in prompts (treats them as printable).
+# Wrap every non-printing sequence in RL_PROMPT_START_IGNORE / RL_PROMPT_END_IGNORE
+# so readline measures the visible width correctly — fixes Home/End/arrow chaos on
+# any input() call that receives a Rich-styled (ANSI) prompt string.
+_ANSI_ESC = _re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+_orig_input = builtins.input
+
+
+def _rl_safe_input(prompt=""):
+    marked = _ANSI_ESC.sub(lambda m: f"\x01{m.group()}\x02", prompt)
+    return _orig_input(marked)
+
+
+builtins.input = _rl_safe_input
 
 from rich import box
 from rich.console import Console

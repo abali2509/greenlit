@@ -1,8 +1,36 @@
-"""Unit tests for display.py — _strip_hint_block and show_task_selector short-key resolution."""
+"""Unit tests for display.py — _strip_hint_block, show_task_selector, and readline ANSI patch."""
 
+import builtins
 from unittest.mock import patch
 
-from greenlit.display import _strip_hint_block, show_task_selector
+from greenlit.display import _rl_safe_input, _strip_hint_block, show_task_selector
+
+# ── _rl_safe_input ANSI marker patch ─────────────────────────────────────────
+
+class TestRlSafeInput:
+    def test_plain_prompt_unchanged(self):
+        with patch("greenlit.display._orig_input", return_value="x") as mock_input:
+            _rl_safe_input("Enter name: ")
+        mock_input.assert_called_once_with("Enter name: ")
+
+    def test_ansi_codes_wrapped_in_markers(self):
+        with patch("greenlit.display._orig_input", return_value="x") as mock_input:
+            _rl_safe_input("\x1b[1;32mPrompt\x1b[0m ")
+        called_with = mock_input.call_args[0][0]
+        assert "\x01\x1b[1;32m\x02" in called_with
+        assert "\x01\x1b[0m\x02" in called_with
+        assert "Prompt" in called_with
+
+    def test_no_ansi_no_markers(self):
+        with patch("greenlit.display._orig_input", return_value="x") as mock_input:
+            _rl_safe_input("  | ")
+        called_with = mock_input.call_args[0][0]
+        assert "\x01" not in called_with
+        assert "\x02" not in called_with
+
+    def test_builtins_input_is_patched(self):
+        assert builtins.input is _rl_safe_input
+
 
 # ── _strip_hint_block ─────────────────────────────────────────────────────────
 

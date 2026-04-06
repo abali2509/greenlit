@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 
+import readline  # noqa: F401 — enables arrow-key navigation and history in input()
+
 from rich import box
 from rich.console import Console
 from rich.panel import Panel

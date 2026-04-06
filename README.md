@@ -51,6 +51,25 @@ pip install "greenlit[templates]"
 
 ---
 
+## Agent skill setup
+
+Run `greenlit init` once inside a project to install the bundled agent skill:
+
+```bash
+greenlit init
+```
+
+You are prompted to choose a target:
+
+| Option | Destination | Agent |
+|--------|-------------|-------|
+| `1` | `.claude/skills/greenlit-Read/SKILL.md` | Claude Code |
+| `2` | `.github/read-greenlit-prompt.md` | GitHub Copilot |
+
+The skill teaches your agent how to read and execute greenlit prompt files. After installation, invoke it with `/greenlit-Read` in Claude Code.
+
+---
+
 ## Quick start
 
 ```bash
@@ -73,9 +92,18 @@ greenlit -t debug -o xml -f prompt.xml
 # copy to clipboard after saving
 greenlit -t review -c
 
+# set a prompt name and output directory
+greenlit -t action -n auth-refactor
+greenlit -t action -n auth-refactor -d prompts/
+
+# use inline input instead of opening an editor
+greenlit -t debug --no-editor
+
 # use a custom YAML template
 greenlit -T my_template.yaml
 ```
+
+Prompts are saved as `<dir>/<name>/<type>.<ext>` — by default `.greenlit/<name>/<type>.<ext>`. Use `-n` to set the name slug, `-d` to change the root directory, or `-f` to specify an exact path. If the same path already exists, a counter suffix is appended (`action_2.md`, `action_3.md`, …).
 
 If installed with uv, prefix commands with `uv run`:
 
@@ -190,7 +218,7 @@ Inside the walkthrough, at any `>` prompt:
 | `s` / `skip` | Skip this section |
 | `p` / `preview` | Preview current output |
 | `e` / `edit` | Jump to a specific section |
-| `q` / `quit` | Save and exit |
+| `q` / `quit` | Quit (prompts to save if content exists, else exits) |
 
 ---
 

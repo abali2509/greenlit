@@ -1,6 +1,5 @@
 """Rich-based terminal display and multi-line input."""
 
-import builtins
 import os
 import re as _re
 import readline  # noqa: F401 — enables arrow-key navigation and history in input()
@@ -8,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from io import StringIO as _StringIO
 
 from rich import box
 from rich.console import Console
@@ -20,20 +20,29 @@ from rich.text import Text
 from greenlit.formatters import FORMATTERS
 from greenlit.sections import SECTIONS, TASK_TYPES
 
-# readline miscounts ANSI escape sequences in prompts (treats them as printable).
-# Wrap every non-printing sequence in RL_PROMPT_START_IGNORE / RL_PROMPT_END_IGNORE
-# so readline measures the visible width correctly — fixes Home/End/arrow chaos on
-# any input() call that receives a Rich-styled (ANSI) prompt string.
+# Rich's Console.input() renders the styled prompt via console.print(end="") then
+# calls bare input() — readline sees an empty prompt (width 0) and lets the cursor
+# walk into the already-rendered text on Home/Left. Fix: render the prompt to an
+# ANSI string, wrap escape sequences in readline's \x01/\x02 non-printing markers,
+# and pass the result to input() so readline knows the true visible width.
 _ANSI_ESC = _re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-_orig_input = builtins.input
+_orig_console_input = Console.input
 
 
-def _rl_safe_input(prompt=""):
-    marked = _ANSI_ESC.sub(lambda m: f"\x01{m.group()}\x02", prompt)
-    return _orig_input(marked)
+def _rl_console_input(self, prompt="", *, markup=True, emoji=True, password=False, stream=None):
+    if prompt and not password and not stream:
+        buf = _StringIO()
+        proxy = Console(file=buf, force_terminal=True, color_system=self.color_system or "standard")
+        proxy.print(prompt, markup=markup, emoji=emoji, end="")
+        ansi = buf.getvalue()
+        safe = _ANSI_ESC.sub(lambda m: f"\x01{m.group()}\x02", ansi)
+        return input(safe)
+    return _orig_console_input(
+        self, prompt, markup=markup, emoji=emoji, password=password, stream=stream,
+    )
 
 
-builtins.input = _rl_safe_input
+Console.input = _rl_console_input
 
 console = Console()
 

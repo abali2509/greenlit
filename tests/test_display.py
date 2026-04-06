@@ -1,35 +1,46 @@
 """Unit tests for display.py — _strip_hint_block, show_task_selector, and readline ANSI patch."""
 
-import builtins
 from unittest.mock import patch
 
-from greenlit.display import _rl_safe_input, _strip_hint_block, show_task_selector
+from rich.console import Console
 
-# ── _rl_safe_input ANSI marker patch ─────────────────────────────────────────
+from greenlit.display import _rl_console_input, _strip_hint_block, show_task_selector
 
-class TestRlSafeInput:
-    def test_plain_prompt_unchanged(self):
-        with patch("greenlit.display._orig_input", return_value="x") as mock_input:
-            _rl_safe_input("Enter name: ")
-        mock_input.assert_called_once_with("Enter name: ")
+# ── _rl_console_input readline-safe Console.input patch ──────────────────────
 
-    def test_ansi_codes_wrapped_in_markers(self):
-        with patch("greenlit.display._orig_input", return_value="x") as mock_input:
-            _rl_safe_input("\x1b[1;32mPrompt\x1b[0m ")
+class TestRlConsoleInput:
+    def test_console_input_is_patched(self):
+        assert Console.input is _rl_console_input
+
+    def test_styled_prompt_passes_ansi_with_markers_to_input(self):
+        c = Console()
+        with patch("builtins.input", return_value="test") as mock_input:
+            result = _rl_console_input(c, "[bright_green]Name[/bright_green]: ")
         called_with = mock_input.call_args[0][0]
-        assert "\x01\x1b[1;32m\x02" in called_with
-        assert "\x01\x1b[0m\x02" in called_with
-        assert "Prompt" in called_with
+        assert "Name" in called_with
+        assert "\x01" in called_with  # RL_PROMPT_START_IGNORE
+        assert "\x02" in called_with  # RL_PROMPT_END_IGNORE
+        assert result == "test"
 
-    def test_no_ansi_no_markers(self):
-        with patch("greenlit.display._orig_input", return_value="x") as mock_input:
-            _rl_safe_input("  | ")
+    def test_plain_prompt_still_reaches_input(self):
+        c = Console()
+        with patch("builtins.input", return_value="val") as mock_input:
+            result = _rl_console_input(c, "Plain: ")
         called_with = mock_input.call_args[0][0]
-        assert "\x01" not in called_with
-        assert "\x02" not in called_with
+        assert "Plain: " in called_with
+        assert result == "val"
 
-    def test_builtins_input_is_patched(self):
-        assert builtins.input is _rl_safe_input
+    def test_empty_prompt_falls_through(self):
+        c = Console()
+        with patch("greenlit.display._orig_console_input", return_value="x") as mock_orig:
+            _rl_console_input(c, "")
+        mock_orig.assert_called_once()
+
+    def test_password_falls_through(self):
+        c = Console()
+        with patch("greenlit.display._orig_console_input", return_value="secret") as mock_orig:
+            _rl_console_input(c, "Password: ", password=True)
+        mock_orig.assert_called_once()
 
 
 # ── _strip_hint_block ─────────────────────────────────────────────────────────

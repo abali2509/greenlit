@@ -67,10 +67,10 @@ You are prompted to choose a target:
 
 | Option | Destination | Agent |
 |--------|-------------|-------|
-| `1` | `.claude/skills/greenlit-Read/SKILL.md` | Claude Code |
-| `2` | `.github/read-greenlit-prompt.md` | GitHub Copilot |
+| `1` | `~/.claude/skills/greenlit-Read/SKILL.md` | Claude Code |
+| `2` | `~/.github/read-greenlit-prompt.md` | GitHub Copilot |
 
-The skill teaches your agent how to read and execute greenlit prompt files. After installation, invoke it with `/greenlit-Read` in Claude Code.
+The skill is installed to your home directory so it's available across all projects. After installation, invoke it with `/greenlit-Read` in Claude Code.
 
 ---
 

@@ -40,11 +40,17 @@ def _copy_to_clipboard(text: str) -> bool:
     elif system == "Windows":
         cmd = ["clip.exe"]
     else:
-        cmd = ["xclip", "-selection", "clipboard"]
-    try:
-        proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
-        return proc.returncode == 0
-    except (FileNotFoundError, subprocess.SubprocessError):
+        for cmd in (
+            ["xclip", "-selection", "clipboard"],
+            ["xsel", "--clipboard", "--input"],
+            ["wl-copy"],
+        ):
+            try:
+                proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
+                if proc.returncode == 0:
+                    return True
+            except (FileNotFoundError, subprocess.SubprocessError):
+                continue
         return False
 
 
@@ -269,9 +275,16 @@ def run(args, task_types: dict | None = None):
 
 
 def main():
+    from greenlit import __version__
+
     parser = argparse.ArgumentParser(
         description="Structure prompts before you burn tokens.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version", "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     subparsers = parser.add_subparsers(dest="command")
 

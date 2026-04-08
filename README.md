@@ -1,6 +1,7 @@
 # greenlit
 
 [![CI](https://github.com/abali2509/greenlit/actions/workflows/ci.yml/badge.svg)](https://github.com/abali2509/greenlit/actions/workflows/ci.yml)
+[![Release](https://github.com/abali2509/greenlit/actions/workflows/release.yml/badge.svg)](https://github.com/abali2509/greenlit/actions/workflows/release.yml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 Structure prompts before you burn tokens.
@@ -66,10 +67,10 @@ You are prompted to choose a target:
 
 | Option | Destination | Agent |
 |--------|-------------|-------|
-| `1` | `.claude/skills/greenlit-Read/SKILL.md` | Claude Code |
-| `2` | `.github/read-greenlit-prompt.md` | GitHub Copilot |
+| `1` | `~/.claude/skills/greenlit-Read/SKILL.md` | Claude Code |
+| `2` | `~/.github/read-greenlit-prompt.md` | GitHub Copilot |
 
-The skill teaches your agent how to read and execute greenlit prompt files. After installation, invoke it with `/greenlit-Read` in Claude Code.
+The skill is installed to your home directory so it's available across all projects. After installation, invoke it with `/greenlit-Read` in Claude Code.
 
 ---
 
@@ -153,8 +154,10 @@ Catch any issues before the release cut.
 **JSON** (saves as `.json`):
 ```json
 {
-  "ask": "Review the auth module for correctness and edge cases.",
-  "goal": "Catch any issues before the release cut.",
+  "sections": {
+    "ask": "Review the auth module for correctness and edge cases.",
+    "goal": "Catch any issues before the release cut."
+  },
   "type": "review"
 }
 ```

@@ -1,6 +1,5 @@
 """Unit tests for init_cmd.run_init() — verifies skill file is written to correct targets."""
 
-import os
 from unittest.mock import patch
 
 from greenlit.init_cmd import run_init

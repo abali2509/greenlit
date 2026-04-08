@@ -23,8 +23,8 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
-      - name: Run tests
-        run: uv run --with pytest --extra templates pytest -v
+      - name: Run tests with coverage
+        run: uv run --with pytest --with pytest-cov --extra templates pytest -v --cov=greenlit --cov-report=term-missing
 
   lint:
     name: Lint

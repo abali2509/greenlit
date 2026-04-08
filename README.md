@@ -154,8 +154,10 @@ Catch any issues before the release cut.
 **JSON** (saves as `.json`):
 ```json
 {
-  "ask": "Review the auth module for correctness and edge cases.",
-  "goal": "Catch any issues before the release cut.",
+  "sections": {
+    "ask": "Review the auth module for correctness and edge cases.",
+    "goal": "Catch any issues before the release cut."
+  },
   "type": "review"
 }
 ```

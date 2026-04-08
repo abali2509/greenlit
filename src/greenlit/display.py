@@ -98,8 +98,8 @@ def read_multiline(
 
 
 def show_transition():
-    """Clear the screen including scrollback buffer."""
-    sys.stdout.write("\033[H\033[2J\033[3J")
+    """Clear the visible screen, preserving scrollback history."""
+    sys.stdout.write("\033[H\033[2J")
     sys.stdout.flush()
 
 

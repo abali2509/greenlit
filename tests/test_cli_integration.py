@@ -266,4 +266,6 @@ class TestNewSubcommand:
         out = capsys.readouterr().out
         assert "## ASK" in out
         assert "Review auth PR" in out
-        assert "<" not in out  # no rich markup leaked
+        # Only the version comment should contain < — no rich markup
+        lines_with_angle = [ln for ln in out.splitlines() if "<" in ln and "greenlit" not in ln]
+        assert not lines_with_angle

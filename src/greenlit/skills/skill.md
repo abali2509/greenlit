@@ -12,6 +12,8 @@ A greenlit prompt is a structured task specification with up to eight sections. 
 
 Both formats are semantically equivalent. The section keys are always: `ask`, `goal`, `context`, `scope`, `inputs`, `outputs`, `constraint`, `attention`.
 
+The `greenlit` attribute/comment records the format version (e.g. `greenlit="0.2"` in XML, `<!-- greenlit: 0.2 -->` in Markdown). Treat it as metadata — it does not affect execution.
+
 ## Task types
 
 Each prompt declares a task type. The task type shapes what the user expects back:

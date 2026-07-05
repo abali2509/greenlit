@@ -15,7 +15,7 @@ SAMPLE = {
 
 def test_xml_wraps_in_prompt_tag():
     out = format_xml(SAMPLE, "action")
-    assert out.startswith('<prompt type="action">')
+    assert out.startswith('<prompt type="action" greenlit="0.2">')
     assert out.endswith("</prompt>")
 
 
@@ -54,6 +54,7 @@ def test_xml_escapes_special_chars():
 def test_markdown_heading_includes_task_type():
     out = format_markdown(SAMPLE, "review")
     assert out.startswith("# REVIEW PROMPT")
+    assert "<!-- greenlit: 0.2 -->" in out
 
 
 def test_markdown_uses_section_labels_as_h2():

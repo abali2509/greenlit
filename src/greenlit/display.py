@@ -266,8 +266,9 @@ def show_section_header(section, guidance, step: int, total: int | None = None):
     console.print()
 
 
-def show_tips(tips: list[str]):
-    console.print(f"  [{DIM}]what makes this section land[/]")
+def show_tips(tips: list[str], review: bool = False):
+    heading = "check the draft against these" if review else "what makes this section land"
+    console.print(f"  [{DIM}]{heading}[/]")
     for tip in tips:
         console.print(f"  [{DIM}]→[/] [{MUTED}]{tip}[/]")
     console.print()

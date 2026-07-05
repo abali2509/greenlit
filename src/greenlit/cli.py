@@ -133,6 +133,34 @@ def run_show(args) -> None:
     sys.stdout.write(path.read_text())
 
 
+def run_review(args) -> None:
+    """Load a drafted greenlit file and step through it as a review."""
+    from greenlit.parser import parse_file
+
+    path = Path(args.file)
+    if not path.exists():
+        console.print(f"  [red]File not found: {path}[/]")
+        sys.exit(1)
+
+    try:
+        task_type, data = parse_file(str(path))
+    except (ValueError, OSError) as exc:
+        console.print(f"  [red]Could not parse {path}: {exc}[/]")
+        sys.exit(1)
+
+    if task_type not in TASK_TYPES:
+        console.print(f"  [red]Unknown task type {task_type!r} in {path}.[/]")
+        sys.exit(1)
+
+    # Save back to the same file and format by default.
+    args.type = task_type
+    args.name = path.parent.name or task_type
+    args.output = "xml" if path.suffix == ".xml" else "markdown"
+    args.file = str(path)
+
+    run(args, prefilled=data, task_type_override=task_type, review=True)
+
+
 def run_draft(args) -> None:
     """Emit a meta-prompt instructing an agent to author a greenlit spec."""
     from rich.console import Console
@@ -252,14 +280,26 @@ def _pick_section(data: dict[str, str], sections: list) -> int | None:
     return None
 
 
-def run(args, task_types: dict | None = None):
+def run(
+    args,
+    task_types: dict | None = None,
+    prefilled: dict | None = None,
+    task_type_override: str | None = None,
+    review: bool = False,
+):
     if task_types is None:
         task_types = TASK_TYPES
 
     show_header()
 
     # Task type selection
-    if args.type and args.type in task_types:
+    if task_type_override:
+        task_type = task_type_override
+        label = task_types[task_type]["label"]
+        verb = "Reviewing" if review else "Task type:"
+        console.print(f"  [{GREEN}]{verb}[/] {label}")
+        console.print()
+    elif args.type and args.type in task_types:
         task_type = args.type
         console.print(f"  [{GREEN}]Task type:[/] {task_types[task_type]['label']}")
         console.print()
@@ -275,9 +315,10 @@ def run(args, task_types: dict | None = None):
     console.print()
 
     from rich.rule import Rule
+    mode = "review" if review else "walkthrough"
     console.print(
         Rule(
-            f" {task_types[task_type]['label']} walkthrough ",
+            f" {task_types[task_type]['label']} {mode} ",
             style=ACCENT,
         )
     )
@@ -289,7 +330,7 @@ def run(args, task_types: dict | None = None):
         sections = [s for s in SECTIONS if s.key in lite_keys]
     else:
         sections = SECTIONS
-    data: dict[str, str] = {}
+    data: dict[str, str] = dict(prefilled) if prefilled else {}
     step = 0
 
     while True:
@@ -336,7 +377,7 @@ def run(args, task_types: dict | None = None):
 
         show_step_bar(step, data, sections)
         show_section_header(section, guidance, step, len(sections))
-        show_tips(guidance.tips)
+        show_tips(guidance.tips, review=review)
         show_nav_help()
 
         existing = data.get(section.key, "").strip()
@@ -448,6 +489,23 @@ def main():
         "--copy", "-c",
         action="store_true",
         help="Copy the meta-prompt to clipboard",
+    )
+
+    # ── review subcommand ─────────────────────────────────────────────
+    review_p = subparsers.add_parser(
+        "review",
+        help="Step through an existing greenlit file, reviewing each section",
+    )
+    review_p.add_argument("file", help="Path to a greenlit .xml or .md file")
+    review_p.add_argument(
+        "--copy", "-c",
+        action="store_true",
+        help="Copy output to clipboard after saving",
+    )
+    review_p.add_argument(
+        "--no-editor",
+        action="store_true",
+        help="Use inline input instead of opening vim/nvim",
     )
 
     # ── list subcommand ───────────────────────────────────────────────
@@ -570,6 +628,13 @@ def main():
         console = _display.console
 
     # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "review":
+        try:
+            run_review(args)
+        except KeyboardInterrupt:
+            console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
+        return
+
     if args.command == "draft":
         run_draft(args)
         return

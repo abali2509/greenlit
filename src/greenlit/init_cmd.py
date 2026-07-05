@@ -1,4 +1,4 @@
-"""greenlit init — install bundled skill into user or project Claude/Copilot dirs."""
+"""greenlit init — install both bundled skills into user or project Claude/Copilot dirs."""
 
 import importlib.resources
 import os
@@ -9,23 +9,35 @@ from greenlit.display import ACCENT, DIM, GREEN, console
 
 _HOME = os.path.expanduser("~")
 
+# (source resource in greenlit.skills, Claude skill dir name, Copilot filename)
+_SKILLS = [
+    ("skill.md", "greenlit-Read", "greenlit-read.instructions.md"),
+    ("skill_write.md", "greenlit-Write", "greenlit-write.instructions.md"),
+]
 
-def _get_targets(cwd: str) -> dict[str, tuple[str, str]]:
-    return {
-        "1": (os.path.join(_HOME, ".claude", "skills", "greenlit-Read"), "SKILL.md"),
-        "2": (os.path.join(cwd, ".claude", "skills", "greenlit-Read"), "SKILL.md"),
-        "3": (os.path.join(cwd, ".github", "instructions"), "greenlit.instructions.md"),
-    }
+
+def _get_installs(cwd: str, choice: str) -> list[tuple[str, str]]:
+    """Return a list of (source_resource, destination_path) for the chosen target."""
+    installs = []
+    for source, claude_name, copilot_name in _SKILLS:
+        if choice == "1":
+            dest = os.path.join(_HOME, ".claude", "skills", claude_name, "SKILL.md")
+        elif choice == "2":
+            dest = os.path.join(cwd, ".claude", "skills", claude_name, "SKILL.md")
+        else:  # choice == "3"
+            dest = os.path.join(cwd, ".github", "instructions", copilot_name)
+        installs.append((source, dest))
+    return installs
 
 
 def run_init() -> None:
     cwd = os.getcwd()
     console.print()
-    console.print(f"  [{ACCENT}]greenlit init[/] — install agent skill\n")
-    console.print(f"  [{DIM}]Where should the skill be written?[/]")
-    console.print(f"  [{DIM}]  1  ~/.claude/skills/greenlit-Read/  (Claude Code, user-global)[/]")
-    console.print(f"  [{DIM}]  2  .claude/skills/greenlit-Read/    (Claude Code, project-level)[/]")
-    console.print(f"  [{DIM}]  3  .github/instructions/            (GitHub Copilot, repo-level)[/]")
+    console.print(f"  [{ACCENT}]greenlit init[/] — install agent skills\n")
+    console.print(f"  [{DIM}]Where should the skills be written?[/]")
+    console.print(f"  [{DIM}]  1  ~/.claude/skills/     (Claude Code, user-global)[/]")
+    console.print(f"  [{DIM}]  2  .claude/skills/       (Claude Code, project-level)[/]")
+    console.print(f"  [{DIM}]  3  .github/instructions/ (GitHub Copilot, repo-level)[/]")
     console.print()
 
     choice = Prompt.ask(
@@ -34,14 +46,15 @@ def run_init() -> None:
         show_choices=False,
     )
 
-    target_dir, filename = _get_targets(cwd)[choice]
-    dest = os.path.join(target_dir, filename)
+    console.print()
+    for source, dest in _get_installs(cwd, choice):
+        skill_text = importlib.resources.files("greenlit.skills").joinpath(source).read_text()
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "w") as f:
+            f.write(skill_text)
+        console.print(f"  [{GREEN}]Skill written to {dest}[/]")
 
-    skill_text = importlib.resources.files("greenlit.skills").joinpath("skill.md").read_text()
-
-    os.makedirs(target_dir, exist_ok=True)
-    with open(dest, "w") as f:
-        f.write(skill_text)
-
-    console.print(f"\n  [{GREEN}]Skill written to {dest}[/]")
-    console.print(f"  [{DIM}]Invoke it with /greenlit-Read in your agent.[/]\n")
+    console.print(
+        f"\n  [{DIM}]Invoke /greenlit-Read to execute a spec, "
+        f"/greenlit-Write to author one.[/]\n"
+    )

@@ -32,6 +32,11 @@ EXPECTED = {
         "Distinguish verified fact from inference.",
         "Cite sources for external claims.",
     ],
+    "docs": [
+        "Modify only documentation files; never change code behavior.",
+        "Match the existing documentation's voice and conventions.",
+        "Verify that examples and commands in the docs actually run.",
+    ],
 }
 
 

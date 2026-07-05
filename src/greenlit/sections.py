@@ -28,6 +28,11 @@ TASK_TYPES = {
         "short": "rs",
         "desc": "Spikes, investigations, trade-off analysis",
     },
+    "docs": {
+        "label": "Docs",
+        "short": "dc",
+        "desc": "Write, update, or restructure documentation",
+    },
 }
 
 

@@ -6,6 +6,7 @@ _REGISTRY: dict[str, str] = {
     "action": "greenlit.guidance.action",
     "debug": "greenlit.guidance.debug",
     "research": "greenlit.guidance.research",
+    "docs": "greenlit.guidance.docs",
 }
 
 

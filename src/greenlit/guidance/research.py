@@ -58,21 +58,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name options that are already off the table to avoid retreading",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Split by research axis — each agent investigates a distinct angle.",
-        placeholder=(
-            "Agent 1 — Evaluate Temporal: feature fit, SDK quality, operational "
-            "complexity\n"
-            "Agent 2 — Benchmark: throughput and latency at our task volume\n"
-            "Agent 3 — Migration: effort estimate and risk assessment"
-        ),
-        tips=[
-            "Each agent should own a distinct research question",
-            "Define what 'done' looks like per agent — findings doc, benchmark "
-            "results, go/no-go",
-            "One agent should synthesise findings into a final recommendation",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="Existing docs, prior evaluations, benchmarks, source code to read.",
         placeholder=(

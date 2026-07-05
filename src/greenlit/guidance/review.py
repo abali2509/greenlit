@@ -60,20 +60,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "If it's a large PR, prioritise which files matter most",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Split the review into specialised passes if needed.",
-        placeholder=(
-            "Agent 1 — Correctness: logic, edge cases, error handling\n"
-            "Agent 2 — Patterns: conventions, dbt best practices\n"
-            "Agent 3 — Observability: logging, metrics, lineage"
-        ),
-        tips=[
-            "Each agent should have a clear, non-overlapping concern",
-            "Name the expertise each agent needs",
-            "Specify how agents should report — inline comments? summary? "
-            "severity?",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="The code, diffs, docs, and reference material the reviewer needs.",
         placeholder=(

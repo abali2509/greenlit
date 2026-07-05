@@ -10,7 +10,7 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "retry logic and structured logging."
         ),
         tips=[
-            "One ask per prompt — split compound tasks into delegation",
+            "One ask per prompt — split compound tasks into separate prompts",
             "Include the 'shape' of the work: new file, refactor, extend, fix",
             "If fixing, describe the current broken behaviour",
         ],
@@ -50,19 +50,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "State what NOT to refactor, even if it looks tempting",
             "Clarify test expectations — unit? integration? both?",
             "Set boundaries around dependency changes",
-        ],
-    ),
-    "delegation": SectionGuidance(
-        hint="Split the implementation into parallel workstreams if compound.",
-        placeholder=(
-            "Agent 1 — Core: executor class and task scheduling\n"
-            "Agent 2 — Tests: unit tests against the interface contract\n"
-            "Agent 3 — Integration: wire up logging and metrics"
-        ),
-        tips=[
-            "Each agent should produce a testable artefact",
-            "Define the merge order — what depends on what?",
-            "Assign a 'lead' agent if work needs coordinating",
         ],
     ),
     "inputs": SectionGuidance(

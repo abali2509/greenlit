@@ -6,7 +6,7 @@
 
 Structure prompts before you burn tokens.
 
-A CLI walkthrough that guides you through nine prompt sections — ASK, GOAL, CONTEXT, SCOPE, DELEGATION, INPUTS, OUTPUTS, CONSTRAINT, ATTENTION — with task-specific guidance at every step.
+A CLI walkthrough that guides you through eight prompt sections — ASK, GOAL, CONTEXT, SCOPE, INPUTS, OUTPUTS, CONSTRAINT, ATTENTION — with task-specific guidance at every step.
 
 ---
 
@@ -22,11 +22,9 @@ cd greenlit
 
 # using uv (recommended)
 uv sync
-uv sync --extra templates        # adds YAML template support
 
 # or using pip
 pip install -e .
-pip install -e ".[templates]"    # adds YAML template support
 ```
 
 ### Global install
@@ -35,14 +33,12 @@ To use `greenlit` as a standalone command without prefixing `uv run`:
 
 **uv tool** (recommended if you use uv):
 ```bash
-uv tool install .                      # from source
-uv tool install ".[templates]"        # with YAML template support
+uv tool install .
 ```
 
 **pipx**:
 ```bash
-pipx install .                         # from source
-pipx install ".[templates]"           # with YAML template support
+pipx install .
 ```
 
 Both methods install `greenlit` into an isolated environment and add it to `~/.local/bin`. Make sure `~/.local/bin` is on your `PATH`.
@@ -50,7 +46,6 @@ Both methods install `greenlit` into an isolated environment and add it to `~/.l
 <!-- ### From PyPI (coming soon)
 ```bash
 pip install greenlit
-pip install "greenlit[templates]"
 ``` -->
 
 ---
@@ -67,10 +62,11 @@ You are prompted to choose a target:
 
 | Option | Destination | Agent |
 |--------|-------------|-------|
-| `1` | `~/.claude/skills/greenlit-Read/SKILL.md` | Claude Code |
-| `2` | `~/.github/read-greenlit-prompt.md` | GitHub Copilot |
+| `1` | `~/.claude/skills/greenlit-Read/SKILL.md` | Claude Code (user-global) |
+| `2` | `.claude/skills/greenlit-Read/SKILL.md` | Claude Code (project-level) |
+| `3` | `.github/instructions/greenlit.instructions.md` | GitHub Copilot (repo-level) |
 
-The skill is installed to your home directory so it's available across all projects. After installation, invoke it with `/greenlit-Read` in Claude Code.
+After installation, invoke the skill with `/greenlit-Read` in Claude Code.
 
 ---
 
@@ -88,7 +84,7 @@ greenlit -t debug
 greenlit -t research
 
 # set output format
-greenlit -t action -o json
+greenlit -t action -o xml
 
 # save to a specific file
 greenlit -t debug -o xml -f prompt.xml
@@ -102,9 +98,6 @@ greenlit -t action -n auth-refactor -d prompts/
 
 # use inline input instead of opening an editor
 greenlit -t debug --no-editor
-
-# use a custom YAML template
-greenlit -T my_template.yaml
 ```
 
 Prompts are saved as `<dir>/<name>/<type>.<ext>` — by default `.greenlit/<name>/<type>.<ext>`. Use `-n` to set the name slug, `-d` to change the root directory, or `-f` to specify an exact path. If the same path already exists, a counter suffix is appended (`action_2.md`, `action_3.md`, …).
@@ -113,7 +106,7 @@ If installed with uv, prefix commands with `uv run`:
 
 ```bash
 uv run greenlit
-uv run greenlit -t action -o json
+uv run greenlit -t action -o xml
 ```
 
 ---
@@ -132,7 +125,7 @@ uv run greenlit -t action -o json
 
 ## Output formats
 
-**XML** (default saves as `.xml`):
+**XML** (saves as `.xml`):
 ```xml
 <prompt type="review">
   <ask>Review the auth module for correctness and edge cases.</ask>
@@ -151,50 +144,6 @@ Review the auth module for correctness and edge cases.
 Catch any issues before the release cut.
 ```
 
-**JSON** (saves as `.json`):
-```json
-{
-  "sections": {
-    "ask": "Review the auth module for correctness and edge cases.",
-    "goal": "Catch any issues before the release cut."
-  },
-  "type": "review"
-}
-```
-
----
-
-## Custom templates
-
-Create a YAML file to define a custom task type:
-
-```yaml
-name: dbt_review
-label: dbt Review
-icon: "custom"
-description: Review dbt models and pipeline code
-extends: review        # fall back to this built-in type for any unspecified sections
-sections:
-  ask:
-    hint: "Which models or macros are you reviewing?"
-    placeholder: "Review staging models for naming conventions..."
-    tips:
-      - "Reference the specific model file paths"
-  goal:
-    hint: "What quality bar for this dbt layer?"
-    placeholder: "Ensure ref() usage is correct..."
-    tips:
-      - "Mention whether you care about performance or correctness"
-```
-
-Run it:
-
-```bash
-greenlit -T dbt_review.yaml
-```
-
-Sections not defined in the YAML inherit from the `extends` type. Requires `pip install "greenlit[templates]"`.
-
 ---
 
 ## Section reference
@@ -205,7 +154,6 @@ Sections not defined in the YAML inherit from the `extends` type. Requires `pip 
 | GOAL | Why are you doing this? What does success look like? |
 | CONTEXT | Background the agent needs to do good work. |
 | SCOPE | Hard boundaries — what's in, what's out. |
-| DELEGATION | Agent roles for sub-tasks — who does what. |
 | INPUTS | What material is being provided? |
 | OUTPUTS | What deliverables do you expect back? |
 | CONSTRAINT | Hard rules. Non-negotiable requirements. |

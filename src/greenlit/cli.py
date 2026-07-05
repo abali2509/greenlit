@@ -175,7 +175,7 @@ def run(args, task_types: dict | None = None):
             while True:
                 action = Prompt.ask(
                     f"  [{ACCENT}]Action[/{ACCENT}]",
-                    choices=["xml", "markdown", "json", "save", "edit", "quit"],
+                    choices=["xml", "markdown", "save", "edit", "quit"],
                     default="save",
                     show_choices=True,
                 )
@@ -309,7 +309,7 @@ def main():
     )
     parser.add_argument(
         "--output", "-o",
-        choices=["xml", "markdown", "json"],
+        choices=["xml", "markdown"],
         default="markdown",
         help="Output format (default: markdown)",
     )
@@ -336,11 +336,6 @@ def main():
         action="store_true",
         help="Use inline input instead of opening vim/nvim",
     )
-    parser.add_argument(
-        "--template", "-T",
-        metavar="PATH",
-        help="Path to a YAML template file for a custom task type",
-    )
 
     args = parser.parse_args()
 
@@ -355,7 +350,6 @@ def main():
 
     # ── walkthrough ───────────────────────────────────────────────────
     cwd = Path(os.path.realpath(os.getcwd()))
-    templates_dir = Path(os.path.realpath(os.path.expanduser("~/.greenlit/templates")))
 
     if args.file:
         target = Path(os.path.realpath(os.path.abspath(args.file)))
@@ -369,38 +363,8 @@ def main():
             console.print("  [red]Error: --dir path must be within the current directory.[/]")
             sys.exit(1)
 
-    if args.template:
-        target = Path(os.path.realpath(os.path.abspath(args.template)))
-        in_cwd = target == cwd or target.is_relative_to(cwd)
-        in_templates_dir = target == templates_dir or target.is_relative_to(templates_dir)
-        if not in_cwd and not in_templates_dir:
-            console.print(
-                "  [red]Error: --template path must be within the current directory "
-                f"or {templates_dir}[/]"
-            )
-            sys.exit(1)
-
-    task_types = dict(TASK_TYPES)
-
-    if args.template:
-        try:
-            from greenlit.guidance import register_guidance
-            from greenlit.templates import load_template
-            name, meta, _ = load_template(args.template)
-            register_guidance(name, meta.pop("_guidance"))
-            task_types[name] = meta
-            # Auto-select the custom type if --type not given
-            if not args.type:
-                args.type = name
-        except ImportError as exc:
-            console.print(f"  [red]{exc}[/]")
-            sys.exit(1)
-        except (FileNotFoundError, ValueError) as exc:
-            console.print(f"  [red]Template error: {exc}[/]")
-            sys.exit(1)
-
     try:
-        run(args, task_types=task_types)
+        run(args)
     except KeyboardInterrupt:
         console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
         sys.exit(0)

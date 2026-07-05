@@ -21,9 +21,6 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = ["rich>=13.0"]
 
-[project.optional-dependencies]
-templates = ["pyyaml>=6.0"]
-
 [project.scripts]
 greenlit = "greenlit.cli:main"
 

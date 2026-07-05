@@ -255,6 +255,17 @@ class TestNewSubcommand:
         assert "Do the thing" in captured.out
         assert not (tmp_path / ".greenlit").exists()
 
+    def test_stdin_read_with_dash(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "ask=-",
+            "-o", "xml", "--stdout",
+        ])
+        monkeypatch.setattr("sys.stdin", __import__("io").StringIO("From stdin content"))
+        main()
+        assert "From stdin content" in capsys.readouterr().out
+
     def test_stdout_markdown_clean_output(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(sys, "argv", [
@@ -269,3 +280,48 @@ class TestNewSubcommand:
         # Only the version comment should contain < — no rich markup
         lines_with_angle = [ln for ln in out.splitlines() if "<" in ln and "greenlit" not in ln]
         assert not lines_with_angle
+
+
+# ── greenlit list / show ──────────────────────────────────────────────────────
+
+class TestListShowSubcommands:
+    def _make_prompt(self, tmp_path, name, task_type, fmt="xml"):
+        prompt_dir = tmp_path / ".greenlit" / name
+        prompt_dir.mkdir(parents=True)
+        ext = "xml" if fmt == "xml" else "md"
+        content = f'<prompt type="{task_type}" greenlit="0.2"><ask>Test</ask></prompt>'
+        f = prompt_dir / f"{task_type}.{ext}"
+        f.write_text(content)
+        return f
+
+    def test_list_prints_saved_prompts(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        self._make_prompt(tmp_path, "auth-refactor", "action")
+        self._make_prompt(tmp_path, "api-design", "plan", "md")
+        monkeypatch.setattr(sys, "argv", ["greenlit", "list"])
+        main()
+        out = capsys.readouterr().out
+        assert "auth-refactor" in out
+        assert "api-design" in out
+
+    def test_list_empty_dir_prints_message(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["greenlit", "list"])
+        main()
+        out = capsys.readouterr().out
+        assert "not found" in out.lower() or "does not exist" in out.lower()
+
+    def test_show_prints_file_to_stdout(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        f = self._make_prompt(tmp_path, "auth-refactor", "action")
+        monkeypatch.setattr(sys, "argv", ["greenlit", "show", str(f)])
+        main()
+        out = capsys.readouterr().out
+        assert "<ask>" in out
+
+    def test_show_missing_file_exits_1(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["greenlit", "show", str(tmp_path / "nope.xml")])
+        with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1

@@ -1,6 +1,7 @@
 """CLI entry point: argparse, main loop."""
 
 import argparse
+import datetime
 import os
 import platform
 import subprocess
@@ -8,6 +9,7 @@ import sys
 from pathlib import Path
 
 from rich.prompt import Confirm, Prompt
+from rich.table import Table
 
 import greenlit.display as _display
 from greenlit.display import (
@@ -86,6 +88,49 @@ def _provision_output_dir(
             if ".greenlit/" not in existing and ".greenlit\n" not in existing:
                 with open(gitignore, "a") as f:
                     f.write("\n.greenlit/\n")
+
+
+def run_list(args) -> None:
+    """Walk .greenlit/ and print a table of saved prompts."""
+    root = Path(args.dir)
+    if not root.is_dir():
+        console.print(f"  [{DIM}]No prompts found — {root}/ does not exist.[/]")
+        return
+
+    entries = []
+    for prompt_dir in sorted(root.iterdir()):
+        if not prompt_dir.is_dir():
+            continue
+        for f in sorted(prompt_dir.iterdir()):
+            if f.suffix not in (".xml", ".md"):
+                continue
+            fmt = "xml" if f.suffix == ".xml" else "markdown"
+            mtime = datetime.datetime.fromtimestamp(f.stat().st_mtime)
+            entries.append((prompt_dir.name, f.stem, fmt, mtime.strftime("%Y-%m-%d %H:%M")))
+
+    if not entries:
+        console.print(f"  [{DIM}]No prompts found in {root}/[/]")
+        return
+
+    table = Table(show_header=True, box=None, pad_edge=False, show_edge=False)
+    table.add_column("name", style=GREEN)
+    table.add_column("type", style=ACCENT)
+    table.add_column("format", style=DIM)
+    table.add_column("modified", style=DIM)
+    for name, stem, fmt, mtime in entries:
+        table.add_row(name, stem, fmt, mtime)
+    console.print()
+    console.print(table)
+    console.print()
+
+
+def run_show(args) -> None:
+    """Print a prompt file to stdout."""
+    path = Path(args.path)
+    if not path.exists():
+        console.print(f"  [red]File not found: {path}[/]")
+        sys.exit(1)
+    sys.stdout.write(path.read_text())
 
 
 def run_new(args) -> None:
@@ -363,6 +408,18 @@ def main():
         ),
     )
 
+    # ── list subcommand ───────────────────────────────────────────────
+    list_p = subparsers.add_parser("list", help="List saved prompts in .greenlit/")
+    list_p.add_argument(
+        "--dir", "-d",
+        default=".greenlit",
+        help="Root directory to list (default: .greenlit/)",
+    )
+
+    # ── show subcommand ───────────────────────────────────────────────
+    show_p = subparsers.add_parser("show", help="Print a saved prompt file to stdout")
+    show_p.add_argument("path", help="Path to the prompt file")
+
     # ── new subcommand ────────────────────────────────────────────────
     new_p = subparsers.add_parser(
         "new",
@@ -466,6 +523,14 @@ def main():
         console = _display.console
 
     # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "list":
+        run_list(args)
+        return
+
+    if args.command == "show":
+        run_show(args)
+        return
+
     if args.command == "new":
         cwd = Path(os.path.realpath(os.getcwd()))
         if args.file:

@@ -3,11 +3,12 @@ path-traversal guards, and a minimal run() walkthrough."""
 
 import os
 import sys
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from greenlit.cli import _copy_to_clipboard, _provision_output_dir, _resolve_output_path, main
+from greenlit.cli import _copy_to_clipboard, _provision_output_dir, _resolve_output_path, main, run
 
 # ── _resolve_output_path ──────────────────────────────────────────────────────
 
@@ -325,3 +326,57 @@ class TestListShowSubcommands:
         with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
+
+
+# ── --lite walkthrough ────────────────────────────────────────────────────────
+
+class TestLiteWalkthrough:
+    def _lite_args(self, tmp_path):
+        return SimpleNamespace(
+            type="action", name="lite-test", output="markdown",
+            file=None, dir=str(tmp_path / ".greenlit"), copy=False,
+            no_editor=True, lite=True, stdout=False, private=False,
+        )
+
+    def test_lite_walks_only_ask_scope_done(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        seen = []
+
+        def record_header(section, guidance, step, total=None):
+            seen.append(section.key)
+
+        args = self._lite_args(tmp_path)
+        # skip through all three sections, then quit at the action menu
+        with patch("greenlit.cli.show_header"), \
+             patch("greenlit.cli.show_step_bar"), \
+             patch("greenlit.cli.show_section_header", side_effect=record_header), \
+             patch("greenlit.cli.show_tips"), \
+             patch("greenlit.cli.show_nav_help"), \
+             patch("greenlit.cli.show_output"), \
+             patch("greenlit.cli.show_transition"), \
+             patch("greenlit.cli.console.print"), \
+             patch("greenlit.cli.Prompt.ask", side_effect=["s", "s", "s", "quit"]):
+            run(args)
+
+        assert seen == ["ask", "scope", "done"]
+
+    def test_lite_total_count_is_three(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        totals = []
+
+        def record_total(section, guidance, step, total=None):
+            totals.append(total)
+
+        args = self._lite_args(tmp_path)
+        with patch("greenlit.cli.show_header"), \
+             patch("greenlit.cli.show_step_bar"), \
+             patch("greenlit.cli.show_section_header", side_effect=record_total), \
+             patch("greenlit.cli.show_tips"), \
+             patch("greenlit.cli.show_nav_help"), \
+             patch("greenlit.cli.show_output"), \
+             patch("greenlit.cli.show_transition"), \
+             patch("greenlit.cli.console.print"), \
+             patch("greenlit.cli.Prompt.ask", side_effect=["s", "s", "s", "quit"]):
+            run(args)
+
+        assert all(t == 3 for t in totals)

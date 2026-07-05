@@ -81,6 +81,11 @@ SECTIONS: list[Section] = [
             "- If any clarification questions exist, ask them before starting work."
         ),
     ),
+    Section(
+        key="done",
+        label="DONE",
+        tagline="Testable acceptance criteria. How the agent proves it's finished.",
+    ),
 ]
 
 

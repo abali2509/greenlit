@@ -106,4 +106,18 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Flag assumptions that seem safe but might not be",
         ],
     ),
+    "done": SectionGuidance(
+        hint="A checklist that tells you the plan is complete and decision-ready.",
+        placeholder=(
+            "- Every component in scope has a defined interface contract.\n"
+            "- Each task has an owner and a rough estimate.\n"
+            "- Open questions are listed, not silently assumed.\n"
+            "- The design addresses every failure mode named in ATTENTION."
+        ),
+        tips=[
+            "For a plan, DONE is a completeness checklist, not a test command",
+            "Each item should be answerable yes/no by reading the deliverable",
+            "Include 'open questions surfaced' — a plan that hides gaps isn't done",
+        ],
+    ),
 }

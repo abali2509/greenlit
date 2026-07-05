@@ -133,6 +133,54 @@ def run_show(args) -> None:
     sys.stdout.write(path.read_text())
 
 
+def run_review(args) -> None:
+    """Load a drafted greenlit file and step through it as a review."""
+    from greenlit.parser import parse_file
+
+    path = Path(args.file)
+    if not path.exists():
+        console.print(f"  [red]File not found: {path}[/]")
+        sys.exit(1)
+
+    try:
+        task_type, data = parse_file(str(path))
+    except (ValueError, OSError) as exc:
+        console.print(f"  [red]Could not parse {path}: {exc}[/]")
+        sys.exit(1)
+
+    if task_type not in TASK_TYPES:
+        console.print(f"  [red]Unknown task type {task_type!r} in {path}.[/]")
+        sys.exit(1)
+
+    # Save back to the same file and format by default.
+    args.type = task_type
+    args.name = path.parent.name or task_type
+    args.output = "xml" if path.suffix == ".xml" else "markdown"
+    args.file = str(path)
+
+    run(args, prefilled=data, task_type_override=task_type, review=True)
+
+
+def run_draft(args) -> None:
+    """Emit a meta-prompt instructing an agent to author a greenlit spec."""
+    from rich.console import Console
+
+    from greenlit.draft_meta import build_meta_prompt
+
+    meta = build_meta_prompt(args.ask, args.type)
+    sys.stdout.write(meta)
+    if not meta.endswith("\n"):
+        sys.stdout.write("\n")
+
+    if getattr(args, "copy", False):
+        # Copy confirmation is chrome — keep stdout clean for piping.
+        err = Console(stderr=True)
+        if _copy_to_clipboard(meta):
+            err.print(f"  [{GREEN}]Copied to clipboard[/]")
+        else:
+            err.print(f"  [{ORANGE}]Warning: no clipboard tool found[/]")
+
+
 def run_new(args) -> None:
     """Non-interactive prompt creation from --set key=value pairs."""
     valid_keys = {s.key for s in SECTIONS}
@@ -232,14 +280,26 @@ def _pick_section(data: dict[str, str], sections: list) -> int | None:
     return None
 
 
-def run(args, task_types: dict | None = None):
+def run(
+    args,
+    task_types: dict | None = None,
+    prefilled: dict | None = None,
+    task_type_override: str | None = None,
+    review: bool = False,
+):
     if task_types is None:
         task_types = TASK_TYPES
 
     show_header()
 
     # Task type selection
-    if args.type and args.type in task_types:
+    if task_type_override:
+        task_type = task_type_override
+        label = task_types[task_type]["label"]
+        verb = "Reviewing" if review else "Task type:"
+        console.print(f"  [{GREEN}]{verb}[/] {label}")
+        console.print()
+    elif args.type and args.type in task_types:
         task_type = args.type
         console.print(f"  [{GREEN}]Task type:[/] {task_types[task_type]['label']}")
         console.print()
@@ -255,20 +315,26 @@ def run(args, task_types: dict | None = None):
     console.print()
 
     from rich.rule import Rule
+    mode = "review" if review else "walkthrough"
     console.print(
         Rule(
-            f" {task_types[task_type]['label']} walkthrough ",
+            f" {task_types[task_type]['label']} {mode} ",
             style=ACCENT,
         )
     )
     console.print()
 
     guidance_map = get_guidance(task_type)
-    data: dict[str, str] = {}
+    if getattr(args, "lite", False):
+        lite_keys = {"ask", "scope", "done"}
+        sections = [s for s in SECTIONS if s.key in lite_keys]
+    else:
+        sections = SECTIONS
+    data: dict[str, str] = dict(prefilled) if prefilled else {}
     step = 0
 
     while True:
-        if step >= len(SECTIONS):
+        if step >= len(sections):
             fmt = args.output
             if getattr(args, "stdout", False):
                 output = FORMATTERS[fmt](data, task_type)
@@ -296,7 +362,7 @@ def run(args, task_types: dict | None = None):
                     console.print()
                     return
                 elif action == "edit":
-                    pick = _pick_section(data, SECTIONS)
+                    pick = _pick_section(data, sections)
                     if pick is not None:
                         step = pick
                         break
@@ -306,12 +372,12 @@ def run(args, task_types: dict | None = None):
 
             continue
 
-        section = SECTIONS[step]
+        section = sections[step]
         guidance = guidance_map[section.key]
 
-        show_step_bar(step, data)
-        show_section_header(section, guidance, step)
-        show_tips(guidance.tips)
+        show_step_bar(step, data, sections)
+        show_section_header(section, guidance, step, len(sections))
+        show_tips(guidance.tips, review=review)
         show_nav_help()
 
         existing = data.get(section.key, "").strip()
@@ -355,7 +421,7 @@ def run(args, task_types: dict | None = None):
                 _save_prompt(data, task_type, fmt, args, prompt_name)
             return
         elif action in ("e", "edit"):
-            pick = _pick_section(data, SECTIONS)
+            pick = _pick_section(data, sections)
             if pick is not None:
                 step = pick
         else:
@@ -406,6 +472,40 @@ def main():
             "project .claude/skills/, "
             "or repo .github/instructions/"
         ),
+    )
+
+    # ── draft subcommand ──────────────────────────────────────────────
+    draft_p = subparsers.add_parser(
+        "draft",
+        help="Emit a meta-prompt telling an agent to author a greenlit spec",
+    )
+    draft_p.add_argument("ask", help="One-line description of the task")
+    draft_p.add_argument(
+        "--type", "-t",
+        choices=list(TASK_TYPES.keys()),
+        help="Task type (agent infers if omitted)",
+    )
+    draft_p.add_argument(
+        "--copy", "-c",
+        action="store_true",
+        help="Copy the meta-prompt to clipboard",
+    )
+
+    # ── review subcommand ─────────────────────────────────────────────
+    review_p = subparsers.add_parser(
+        "review",
+        help="Step through an existing greenlit file, reviewing each section",
+    )
+    review_p.add_argument("file", help="Path to a greenlit .xml or .md file")
+    review_p.add_argument(
+        "--copy", "-c",
+        action="store_true",
+        help="Copy output to clipboard after saving",
+    )
+    review_p.add_argument(
+        "--no-editor",
+        action="store_true",
+        help="Use inline input instead of opening vim/nvim",
     )
 
     # ── list subcommand ───────────────────────────────────────────────
@@ -504,6 +604,11 @@ def main():
         help="Use inline input instead of opening vim/nvim",
     )
     parser.add_argument(
+        "--lite",
+        action="store_true",
+        help="Three-section walkthrough: ASK, SCOPE, DONE",
+    )
+    parser.add_argument(
         "--stdout",
         action="store_true",
         help="Print to stdout instead of saving; UI chrome goes to stderr",
@@ -523,6 +628,17 @@ def main():
         console = _display.console
 
     # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "review":
+        try:
+            run_review(args)
+        except KeyboardInterrupt:
+            console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
+        return
+
+    if args.command == "draft":
+        run_draft(args)
+        return
+
     if args.command == "list":
         run_list(args)
         return

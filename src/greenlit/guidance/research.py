@@ -110,4 +110,18 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Mention past decisions that went wrong and what to avoid repeating",
         ],
     ),
+    "done": SectionGuidance(
+        hint="The checklist that says the research answers the question it set out to.",
+        placeholder=(
+            "- Every question in ASK has an evidence-backed answer.\n"
+            "- A recommendation is given with a stated confidence level.\n"
+            "- Trade-offs are captured in a matrix, not just prose.\n"
+            "- The suggested next step is explicit (prototype / adopt / defer)."
+        ),
+        tips=[
+            "For research, DONE proves the decision can now be made",
+            "Each item should be answerable yes/no by reading the deliverable",
+            "Include 'confidence level stated' — research without it isn't done",
+        ],
+    ),
 }

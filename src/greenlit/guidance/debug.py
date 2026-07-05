@@ -105,4 +105,18 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Warn about any 'obvious' fixes that were tried and didn't work",
         ],
     ),
+    "done": SectionGuidance(
+        hint="How you'll prove the bug is fixed, not just theorised about.",
+        placeholder=(
+            "- WHEN the reproducing test runs, `pytest tests/test_loader.py::test_incremental` "
+            "SHALL pass (it currently fails).\n"
+            "- WHEN an incremental load runs, the row count SHALL match the source.\n"
+            "- Root cause is documented with evidence, not speculation."
+        ),
+        tips=[
+            "A failing reproducing test that now passes is the gold standard",
+            "Write EARS-style: WHEN <condition>, the system SHALL <behavior>",
+            "Include the command that demonstrates the fix",
+        ],
+    ),
 }

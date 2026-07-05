@@ -52,8 +52,10 @@ jobs:
       - name: Build wheel
         run: uv build
 
-      - name: Assert skill.md in wheel
-        run: unzip -l dist/*.whl | grep -q "greenlit/skills/skill.md"
+      - name: Assert both skills in wheel
+        run: |
+          unzip -l dist/*.whl | grep -q "greenlit/skills/skill.md"
+          unzip -l dist/*.whl | grep -q "greenlit/skills/skill_write.md"
 
       - name: Install wheel into clean venv and run greenlit init
         run: |

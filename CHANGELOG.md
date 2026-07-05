@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- DONE section — testable acceptance criteria (EARS-style, runnable checks), positioned last. The greenlit-Read skill now executes every DONE item and reports pass/fail before declaring completion.
+- `--lite` flag — three-section walkthrough (ASK, SCOPE, DONE) for medium-sized tasks.
+- `greenlit draft "<ask>"` — emits an agent-authoring meta-prompt (stdout, optional `--copy`) that tells an agent to interview the user and produce a greenlit spec. Offline, no dependencies.
+- `greenlit review <file>` — loads an existing greenlit file (XML or Markdown) and steps through it with content pre-filled, reframing guidance as review checklists.
+- `parser.py` — XML/Markdown prompt parser with round-trip guarantees against the formatters.
+- Second bundled skill `greenlit-Write` — teaches an agent to author greenlit specs. `greenlit init` now installs both skills per target.
 - `greenlit new -t <type> --set key=value ...` — non-interactive prompt creation; `key=-` reads from stdin; `--stdout` prints instead of saving.
 - `--stdout` flag for both `new` and the interactive walkthrough: formatted prompt goes to stdout, all UI chrome to stderr (pipeline-safe).
 - `--private` flag: opt in to writing `.greenlit/` to `.gitignore` (default is now to leave `.gitignore` untouched, version-controlling specs).

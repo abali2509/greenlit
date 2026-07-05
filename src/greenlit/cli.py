@@ -83,6 +83,47 @@ def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
                     f.write("\n.greenlit/\n")
 
 
+def run_new(args) -> None:
+    """Non-interactive prompt creation from --set key=value pairs."""
+    valid_keys = {s.key for s in SECTIONS}
+    data: dict[str, str] = {}
+    stdin_used = False
+
+    for kv in (args.set or []):
+        if "=" not in kv:
+            console.print(f"  [red]--set requires key=value format, got {kv!r}[/]")
+            sys.exit(1)
+        key, _, val = kv.partition("=")
+        if key not in valid_keys:
+            console.print(
+                f"  [red]Unknown section {key!r}. "
+                f"Valid keys: {', '.join(sorted(valid_keys))}[/]"
+            )
+            sys.exit(1)
+        if val == "-":
+            if stdin_used:
+                console.print("  [red]Only one --set key=- (stdin read) is allowed.[/]")
+                sys.exit(1)
+            val = sys.stdin.read()
+            stdin_used = True
+        data[key] = val
+
+    output = FORMATTERS[args.output](data, args.type)
+
+    if args.file:
+        filename = args.file
+        os.makedirs(os.path.dirname(os.path.abspath(filename)) or ".", exist_ok=True)
+    else:
+        root_dir = args.dir
+        prompt_name = args.name or args.type
+        filename = _resolve_output_path(root_dir, prompt_name, args.type, args.output)
+        _provision_output_dir(filename, root_dir, os.getcwd())
+
+    with open(filename, "w") as f:
+        f.write(output)
+    console.print(f"  [{GREEN}]Saved to {filename}[/]")
+
+
 def _save_prompt(
     data: dict[str, str],
     task_type: str,
@@ -301,6 +342,44 @@ def main():
         ),
     )
 
+    # ── new subcommand ────────────────────────────────────────────────
+    new_p = subparsers.add_parser(
+        "new",
+        help="Create a prompt non-interactively from --set key=value pairs",
+    )
+    new_p.add_argument(
+        "--type", "-t",
+        choices=list(TASK_TYPES.keys()),
+        required=True,
+        help="Task type",
+    )
+    new_p.add_argument(
+        "--set", "-s",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Set a section value (use KEY=- to read from stdin)",
+    )
+    new_p.add_argument(
+        "--output", "-o",
+        choices=["xml", "markdown"],
+        default="markdown",
+        help="Output format (default: markdown)",
+    )
+    new_p.add_argument(
+        "--file", "-f",
+        help="Full output path (overrides --dir / --name)",
+    )
+    new_p.add_argument(
+        "--dir", "-d",
+        default=".greenlit",
+        help="Root output directory (default: .greenlit/)",
+    )
+    new_p.add_argument(
+        "--name", "-n",
+        help="Prompt namespace slug (default: task type)",
+    )
+
     # ── run (default walkthrough) — flags on the root parser ─────────
     parser.add_argument(
         "--type", "-t",
@@ -340,6 +419,24 @@ def main():
     args = parser.parse_args()
 
     # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "new":
+        cwd = Path(os.path.realpath(os.getcwd()))
+        if args.file:
+            target = Path(os.path.realpath(os.path.abspath(args.file)))
+            if not (target == cwd or target.is_relative_to(cwd)):
+                console.print("  [red]Error: --file path must be within the current directory.[/]")
+                sys.exit(1)
+        if args.dir:
+            target = Path(os.path.realpath(os.path.abspath(args.dir)))
+            if not (target == cwd or target.is_relative_to(cwd)):
+                console.print("  [red]Error: --dir path must be within the current directory.[/]")
+                sys.exit(1)
+        try:
+            run_new(args)
+        except KeyboardInterrupt:
+            console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
+        return
+
     if args.command == "init":
         from greenlit.init_cmd import run_init
         try:

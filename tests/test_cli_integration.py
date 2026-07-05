@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from greenlit.cli import _copy_to_clipboard, _provision_output_dir, _resolve_output_path
+from greenlit.cli import _copy_to_clipboard, _provision_output_dir, _resolve_output_path, main
 
 # ── _resolve_output_path ──────────────────────────────────────────────────────
 
@@ -145,3 +145,90 @@ class TestCopyToClipboard:
             result = _copy_to_clipboard("hello")
         assert result is True
         assert mock_run.call_count == 2
+
+
+# ── greenlit new ──────────────────────────────────────────────────────────────
+
+class TestNewSubcommand:
+    def test_creates_xml_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "ask=Refactor the auth module",
+            "--set", "scope=auth/ only",
+            "-o", "xml", "-n", "auth-refactor",
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        out = tmp_path / ".greenlit" / "auth-refactor" / "action.xml"
+        assert out.exists()
+        content = out.read_text()
+        assert "Refactor the auth module" in content
+        assert "<ask>" in content
+        assert "<scope>" in content
+
+    def test_creates_markdown_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "review",
+            "--set", "ask=Review the PR",
+            "-o", "markdown", "-n", "pr-review",
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        out = tmp_path / ".greenlit" / "pr-review" / "review.md"
+        assert out.exists()
+        assert "Review the PR" in out.read_text()
+
+    def test_unknown_section_key_exits_1(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "bogus=value",
+        ])
+        with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    def test_custom_name_and_dir(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        out_dir = tmp_path / "specs"
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "plan",
+            "--set", "ask=Design the new API",
+            "-n", "api-design", "-d", str(out_dir),
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        assert (out_dir / "api-design" / "plan.md").exists()
+
+    def test_explicit_file_path(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        out_file = tmp_path / "my-prompt.xml"
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "debug",
+            "--set", "ask=Fix the crash",
+            "-o", "xml", "-f", str(out_file),
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        assert out_file.exists()
+        assert "Fix the crash" in out_file.read_text()
+
+    def test_no_set_args_creates_empty_prompt(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["greenlit", "new", "-t", "action"])
+        with patch("greenlit.cli.console.print"):
+            main()
+        out = tmp_path / ".greenlit" / "action" / "action.md"
+        assert out.exists()
+
+    def test_file_outside_cwd_rejected(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        outside = str(tmp_path.parent / "evil.xml")
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action", "-f", outside,
+        ])
+        with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1

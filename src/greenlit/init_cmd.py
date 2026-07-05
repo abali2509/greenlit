@@ -37,7 +37,7 @@ def run_init() -> None:
     target_dir, filename = _get_targets(cwd)[choice]
     dest = os.path.join(target_dir, filename)
 
-    skill_text = importlib.resources.read_text("greenlit.skills", "skill.md")
+    skill_text = importlib.resources.files("greenlit.skills").joinpath("skill.md").read_text()
 
     os.makedirs(target_dir, exist_ok=True)
     with open(dest, "w") as f:

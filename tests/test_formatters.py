@@ -1,10 +1,8 @@
 """Unit tests for greenlit.formatters."""
 
-import json
-
 import pytest
 
-from greenlit.formatters import format_json, format_markdown, format_prompt, format_xml
+from greenlit.formatters import format_markdown, format_prompt, format_xml
 
 SAMPLE = {
     "ask": "Do the thing",
@@ -74,28 +72,6 @@ def test_markdown_task_type_upper():
     assert out.startswith("# DEBUG PROMPT")
 
 
-# ── format_json ───────────────────────────────────────────────────────
-
-def test_json_is_valid():
-    out = format_json(SAMPLE, "plan")
-    obj = json.loads(out)
-    assert obj["type"] == "plan"
-    assert "sections" in obj
-
-
-def test_json_omits_empty_sections():
-    out = format_json({"ask": "X", "goal": ""}, "action")
-    obj = json.loads(out)
-    assert "goal" not in obj["sections"]
-
-
-def test_json_sorts_keys():
-    out = format_json(SAMPLE, "action")
-    obj = json.loads(out)
-    keys = list(obj["sections"].keys())
-    assert keys == sorted(keys)
-
-
 # ── format_prompt dispatch ────────────────────────────────────────────
 
 def test_format_prompt_dispatches_xml():
@@ -106,11 +82,6 @@ def test_format_prompt_dispatches_xml():
 def test_format_prompt_dispatches_markdown():
     out = format_prompt({"ask": "X"}, "plan", "markdown")
     assert "## ASK" in out
-
-
-def test_format_prompt_dispatches_json():
-    out = format_prompt({"ask": "X"}, "review", "json")
-    assert json.loads(out)["type"] == "review"
 
 
 def test_format_prompt_raises_for_unknown_format():

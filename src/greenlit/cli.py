@@ -175,7 +175,7 @@ def run(args, task_types: dict | None = None):
             while True:
                 action = Prompt.ask(
                     f"  [{ACCENT}]Action[/{ACCENT}]",
-                    choices=["xml", "markdown", "json", "save", "edit", "quit"],
+                    choices=["xml", "markdown", "save", "edit", "quit"],
                     default="save",
                     show_choices=True,
                 )
@@ -309,7 +309,7 @@ def main():
     )
     parser.add_argument(
         "--output", "-o",
-        choices=["xml", "markdown", "json"],
+        choices=["xml", "markdown"],
         default="markdown",
         help="Output format (default: markdown)",
     )

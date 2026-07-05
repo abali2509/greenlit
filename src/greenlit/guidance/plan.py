@@ -56,19 +56,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name the integration boundaries — what you own vs don't",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Break the design into sub-problems. Assign each to a specialist.",
-        placeholder=(
-            "Agent 1 — Task Graph: DAG structure and dependency resolution\n"
-            "Agent 2 — Executor: parallel execution engine\n"
-            "Agent 3 — Resilience: retry, timeout, failure handling"
-        ),
-        tips=[
-            "Fan-out to specialist agents, fan-in to a synthesiser",
-            "Define the interface contract between agents",
-            "Specify which agent has final say on trade-offs",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="Requirements, existing code, diagrams, constraints docs.",
         placeholder=(

@@ -61,11 +61,6 @@ SECTIONS: list[Section] = [
     Section(
         key="scope", label="SCOPE", tagline="Hard boundaries. What's in, what's out."
     ),
-    Section(
-        key="delegation",
-        label="DELEGATION",
-        tagline="Agent roles for sub-tasks. Who does what.",
-    ),
     Section(key="inputs", label="INPUTS", tagline="What material is being provided?"),
     Section(
         key="outputs",

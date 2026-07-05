@@ -54,20 +54,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Use IN / RULED OUT / OUT explicitly",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Split the investigation by subsystem or hypothesis if parallel diagnosis helps.",
-        placeholder=(
-            "Agent 1 — Trace the data path through loader.py\n"
-            "Agent 2 — Check recent dependency changes for silent-failure "
-            "regressions\n"
-            "Agent 3 — Reproduce locally with minimal test case"
-        ),
-        tips=[
-            "Assign each agent a distinct hypothesis to validate",
-            "Define how agents report findings — confidence level, evidence",
-            "One agent should own writing the reproducing test case",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="Error traces, metrics dashboards, recent deploy diffs, relevant source files.",
         placeholder=(

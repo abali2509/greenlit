@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+- DELEGATION section removed from the prompt format, all task-type guidance, and the greenlit-Read skill. Orchestrators self-decompose; DELEGATION added ceremony without value.
+- JSON output format removed. XML and Markdown are the two canonically supported formats; JSON was semantically identical to XML with no distinct consumers.
+- YAML custom template system removed (`templates.py`, `--template/-T` flag, `pyyaml` optional dependency, `register_guidance`). Feature fought the tool's simplicity value and required an optional dependency.
+
 ### Fixed
 - `_copy_to_clipboard` now actually executes the command on macOS (`pbcopy`) and Windows (`clip.exe`); previously only the Linux fallback chain ran.
 - `greenlit init` option 2 now writes Copilot instructions to `<repo>/.github/instructions/greenlit.instructions.md` (repo-level, where Copilot reads it) instead of `~/.github/` (home directory, dead path).

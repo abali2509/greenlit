@@ -24,7 +24,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run tests with coverage
-        run: uv run --with pytest --with pytest-cov --extra templates pytest -v --cov=greenlit --cov-report=term-missing
+        run: uv run --with pytest --with pytest-cov pytest -v --cov=greenlit --cov-report=term-missing
 
   lint:
     name: Lint

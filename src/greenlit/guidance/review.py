@@ -110,4 +110,18 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Highlight recent production incidents related to this code",
         ],
     ),
+    "done": SectionGuidance(
+        hint="The checklist that says the review is complete and trustworthy.",
+        placeholder=(
+            "- Every file in SCOPE has been read, not skimmed.\n"
+            "- Each finding has a severity, a file:line, and a concrete fix.\n"
+            "- A clear verdict is given: approve / request changes / block.\n"
+            "- Every CONSTRAINT has been checked against the code."
+        ),
+        tips=[
+            "For a review, DONE is a coverage checklist — did you actually check everything?",
+            "Each item should be answerable yes/no",
+            "Include 'verdict given' so the review ends with a decision",
+        ],
+    ),
 }

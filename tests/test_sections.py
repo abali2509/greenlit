@@ -13,6 +13,11 @@ def test_no_duplicate_section_keys():
     assert len(SECTION_KEYS) == len(set(SECTION_KEYS))
 
 
+def test_done_section_present_and_last():
+    assert SECTION_KEYS[-1] == "done", "DONE must be the final section, after ATTENTION"
+    assert SECTION_KEYS[-2] == "attention"
+
+
 def test_get_sections_returns_all_sections():
     assert get_sections() == SECTIONS
 

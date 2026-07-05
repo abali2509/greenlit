@@ -102,4 +102,17 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Mention things that pass tests but fail in production",
         ],
     ),
+    "done": SectionGuidance(
+        hint="Testable criteria that prove completion. Prefer runnable checks.",
+        placeholder=(
+            "- WHEN the suite runs, `pytest tests/test_executor.py` SHALL pass.\n"
+            "- WHEN linted, `ruff check src/` SHALL report no errors.\n"
+            "- WHEN 50 concurrent tasks are submitted, none SHALL be dropped."
+        ),
+        tips=[
+            "Write EARS-style: WHEN <condition>, the system SHALL <behavior>",
+            "Give the exact command to run — test, lint, build",
+            "Each criterion must be objectively checkable, not aspirational",
+        ],
+    ),
 }

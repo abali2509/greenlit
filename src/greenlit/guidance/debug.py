@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Reproduce the failure before changing anything.",
+    "Fix the root cause with the smallest change; no opportunistic refactoring.",
+    "Never modify or delete tests to make them pass.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint="Describe the symptom. Observed vs expected behaviour in one sentence.",

@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Change nothing outside SCOPE.",
+    "Do not add or upgrade dependencies without flagging first.",
+    "If a DONE criterion cannot be met, stop and report — never redefine done.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint="What needs building, fixing, or changing? Concrete verb, concrete target.",

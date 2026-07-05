@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Read-only: do not create, modify, or commit any files.",
+    "Report findings, do not fix them.",
+    "Every finding must reference a file and line.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint=(

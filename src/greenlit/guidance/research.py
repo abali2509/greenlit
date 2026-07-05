@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Do not modify the codebase.",
+    "Distinguish verified fact from inference.",
+    "Cite sources for external claims.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint=(

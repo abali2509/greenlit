@@ -2,6 +2,11 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Do not implement anything — the plan is the only output.",
+    "Surface assumptions and open questions explicitly rather than resolving them silently.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint=(

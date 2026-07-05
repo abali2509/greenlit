@@ -133,6 +133,26 @@ def run_show(args) -> None:
     sys.stdout.write(path.read_text())
 
 
+def run_draft(args) -> None:
+    """Emit a meta-prompt instructing an agent to author a greenlit spec."""
+    from rich.console import Console
+
+    from greenlit.draft_meta import build_meta_prompt
+
+    meta = build_meta_prompt(args.ask, args.type)
+    sys.stdout.write(meta)
+    if not meta.endswith("\n"):
+        sys.stdout.write("\n")
+
+    if getattr(args, "copy", False):
+        # Copy confirmation is chrome — keep stdout clean for piping.
+        err = Console(stderr=True)
+        if _copy_to_clipboard(meta):
+            err.print(f"  [{GREEN}]Copied to clipboard[/]")
+        else:
+            err.print(f"  [{ORANGE}]Warning: no clipboard tool found[/]")
+
+
 def run_new(args) -> None:
     """Non-interactive prompt creation from --set key=value pairs."""
     valid_keys = {s.key for s in SECTIONS}
@@ -413,6 +433,23 @@ def main():
         ),
     )
 
+    # ── draft subcommand ──────────────────────────────────────────────
+    draft_p = subparsers.add_parser(
+        "draft",
+        help="Emit a meta-prompt telling an agent to author a greenlit spec",
+    )
+    draft_p.add_argument("ask", help="One-line description of the task")
+    draft_p.add_argument(
+        "--type", "-t",
+        choices=list(TASK_TYPES.keys()),
+        help="Task type (agent infers if omitted)",
+    )
+    draft_p.add_argument(
+        "--copy", "-c",
+        action="store_true",
+        help="Copy the meta-prompt to clipboard",
+    )
+
     # ── list subcommand ───────────────────────────────────────────────
     list_p = subparsers.add_parser("list", help="List saved prompts in .greenlit/")
     list_p.add_argument(
@@ -533,6 +570,10 @@ def main():
         console = _display.console
 
     # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "draft":
+        run_draft(args)
+        return
+
     if args.command == "list":
         run_list(args)
         return

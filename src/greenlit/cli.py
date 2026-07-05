@@ -9,6 +9,7 @@ from pathlib import Path
 
 from rich.prompt import Confirm, Prompt
 
+import greenlit.display as _display
 from greenlit.display import (
     ACCENT,
     DIM,
@@ -110,6 +111,12 @@ def run_new(args) -> None:
 
     output = FORMATTERS[args.output](data, args.type)
 
+    if getattr(args, "stdout", False):
+        sys.stdout.write(output)
+        if not output.endswith("\n"):
+            sys.stdout.write("\n")
+        return
+
     if args.file:
         filename = args.file
         os.makedirs(os.path.dirname(os.path.abspath(filename)) or ".", exist_ok=True)
@@ -210,6 +217,12 @@ def run(args, task_types: dict | None = None):
     while True:
         if step >= len(SECTIONS):
             fmt = args.output
+            if getattr(args, "stdout", False):
+                output = FORMATTERS[fmt](data, task_type)
+                sys.stdout.write(output)
+                if not output.endswith("\n"):
+                    sys.stdout.write("\n")
+                return
             show_output(data, task_type, fmt)
             console.print()
 
@@ -379,6 +392,11 @@ def main():
         "--name", "-n",
         help="Prompt namespace slug (default: task type)",
     )
+    new_p.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print to stdout instead of saving; UI chrome goes to stderr",
+    )
 
     # ── run (default walkthrough) — flags on the root parser ─────────
     parser.add_argument(
@@ -415,8 +433,19 @@ def main():
         action="store_true",
         help="Use inline input instead of opening vim/nvim",
     )
+    parser.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print to stdout instead of saving; UI chrome goes to stderr",
+    )
 
     args = parser.parse_args()
+
+    # ── stdout mode: redirect UI chrome to stderr ─────────────────────
+    if getattr(args, "stdout", False):
+        global console  # noqa: PLW0603
+        _display.use_stderr()
+        console = _display.console
 
     # ── dispatch init ─────────────────────────────────────────────────
     if args.command == "new":

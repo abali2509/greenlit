@@ -232,3 +232,29 @@ class TestNewSubcommand:
         with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
+
+    def test_stdout_flag_writes_to_stdout_not_file(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "ask=Do the thing",
+            "-o", "xml", "--stdout",
+        ])
+        main()
+        captured = capsys.readouterr()
+        assert "<ask>" in captured.out
+        assert "Do the thing" in captured.out
+        assert not (tmp_path / ".greenlit").exists()
+
+    def test_stdout_markdown_clean_output(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "review",
+            "--set", "ask=Review auth PR",
+            "-o", "markdown", "--stdout",
+        ])
+        main()
+        out = capsys.readouterr().out
+        assert "## ASK" in out
+        assert "Review auth PR" in out
+        assert "<" not in out  # no rich markup leaked

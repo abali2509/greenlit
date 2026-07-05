@@ -1,14 +1,17 @@
 """Interactive-authoring tests: CONSTRAINT is seeded with the type's defaults."""
 
+import sys
 from contextlib import ExitStack
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
-from greenlit.cli import run
+from greenlit.cli import main, run
 from greenlit.guidance import get_default_constraints
-from greenlit.parser import parse_file
+from greenlit.parser import parse_file, parse_prompt
+
+ALL_TYPES = ["review", "plan", "action", "debug", "research", "docs"]
 
 _CHROME = [
     "greenlit.cli.show_header",
@@ -95,3 +98,48 @@ def test_lite_output_includes_constraint_defaults(tmp_path, monkeypatch):
     saved = tmp_path / ".greenlit" / "action-seed" / "action.xml"
     _, data = parse_file(str(saved))
     assert data.get("constraint", "").split("\n") == get_default_constraints("action")
+
+
+# ── greenlit new: default / override / opt-out ────────────────────────────────
+
+@pytest.mark.parametrize("task_type", ALL_TYPES)
+def test_new_includes_defaults(task_type, monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", [
+        "greenlit", "new", "-t", task_type, "--set", "ask=Do it", "-o", "xml", "--stdout",
+    ])
+    main()
+    _, data = parse_prompt(capsys.readouterr().out)
+    assert data.get("constraint", "").split("\n") == get_default_constraints(task_type)
+
+
+def test_new_explicit_constraint_replaces_defaults(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", [
+        "greenlit", "new", "-t", "action",
+        "--set", "ask=Do it", "--set", "constraint=Only my rule.",
+        "-o", "xml", "--stdout",
+    ])
+    main()
+    _, data = parse_prompt(capsys.readouterr().out)
+    assert data["constraint"] == "Only my rule."
+
+
+def test_new_no_default_constraints_opt_out(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", [
+        "greenlit", "new", "-t", "action",
+        "--set", "ask=Do it", "--no-default-constraints",
+        "-o", "xml", "--stdout",
+    ])
+    main()
+    _, data = parse_prompt(capsys.readouterr().out)
+    assert "constraint" not in data
+
+
+def test_new_docs_opt_out(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", [
+        "greenlit", "new", "-t", "docs",
+        "--set", "ask=Update docs", "--no-default-constraints",
+        "-o", "markdown", "--stdout",
+    ])
+    main()
+    _, data = parse_prompt(capsys.readouterr().out)
+    assert "constraint" not in data

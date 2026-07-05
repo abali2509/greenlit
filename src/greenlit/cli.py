@@ -206,6 +206,12 @@ def run_new(args) -> None:
             stdin_used = True
         data[key] = val
 
+    # Seed default constraints unless the user set CONSTRAINT explicitly or opted out.
+    if "constraint" not in data and not getattr(args, "no_default_constraints", False):
+        defaults = get_default_constraints(args.type)
+        if defaults:
+            data["constraint"] = "\n".join(defaults)
+
     output = FORMATTERS[args.output](data, args.type)
 
     if getattr(args, "stdout", False):
@@ -584,6 +590,11 @@ def main():
         "--private",
         action="store_true",
         help="Add .greenlit/ to .gitignore (default: leave .gitignore untouched)",
+    )
+    new_p.add_argument(
+        "--no-default-constraints",
+        action="store_true",
+        help="Omit the task type's default CONSTRAINT lines",
     )
 
     # ── run (default walkthrough) — flags on the root parser ─────────

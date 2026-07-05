@@ -1,4 +1,4 @@
-"""greenlit init — install the bundled skill into ~/.claude/skills/ or .github/instructions/."""
+"""greenlit init — install bundled skill into user or project Claude/Copilot dirs."""
 
 import importlib.resources
 import os
@@ -13,7 +13,8 @@ _HOME = os.path.expanduser("~")
 def _get_targets(cwd: str) -> dict[str, tuple[str, str]]:
     return {
         "1": (os.path.join(_HOME, ".claude", "skills", "greenlit-Read"), "SKILL.md"),
-        "2": (os.path.join(cwd, ".github", "instructions"), "greenlit.instructions.md"),
+        "2": (os.path.join(cwd, ".claude", "skills", "greenlit-Read"), "SKILL.md"),
+        "3": (os.path.join(cwd, ".github", "instructions"), "greenlit.instructions.md"),
     }
 
 
@@ -23,12 +24,13 @@ def run_init() -> None:
     console.print(f"  [{ACCENT}]greenlit init[/] — install agent skill\n")
     console.print(f"  [{DIM}]Where should the skill be written?[/]")
     console.print(f"  [{DIM}]  1  ~/.claude/skills/greenlit-Read/  (Claude Code, user-global)[/]")
-    console.print(f"  [{DIM}]  2  .github/instructions/            (GitHub Copilot, repo-level)[/]")
+    console.print(f"  [{DIM}]  2  .claude/skills/greenlit-Read/    (Claude Code, project-level)[/]")
+    console.print(f"  [{DIM}]  3  .github/instructions/            (GitHub Copilot, repo-level)[/]")
     console.print()
 
     choice = Prompt.ask(
         f"  [{ACCENT}]Choice[/{ACCENT}]",
-        choices=["1", "2"],
+        choices=["1", "2", "3"],
         show_choices=False,
     )
 

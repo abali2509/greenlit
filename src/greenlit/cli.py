@@ -292,7 +292,12 @@ def main():
     # ── init subcommand ───────────────────────────────────────────────
     subparsers.add_parser(
         "init",
-        help="Install the greenlit agent skill into .claude/skills/ or .github/",
+        help=(
+            "Install the greenlit-Read agent skill: "
+            "user-global ~/.claude/skills/, "
+            "project .claude/skills/, "
+            "or repo .github/instructions/"
+        ),
     )
 
     # ── run (default walkthrough) — flags on the root parser ─────────

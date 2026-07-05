@@ -16,10 +16,10 @@ class TestRunInit:
         content = dest.read_text()
         assert "greenlit" in content.lower()
 
-    def test_choice_2_writes_to_github_instructions(self, tmp_path, monkeypatch):
+    def test_choice_3_writes_to_github_instructions(self, tmp_path, monkeypatch):
         monkeypatch.setattr("greenlit.init_cmd._HOME", str(tmp_path))
         monkeypatch.chdir(tmp_path)
-        with patch("greenlit.init_cmd.Prompt.ask", return_value="2"), \
+        with patch("greenlit.init_cmd.Prompt.ask", return_value="3"), \
              patch("greenlit.init_cmd.console.print"):
             run_init()
         dest = tmp_path / ".github" / "instructions" / "greenlit.instructions.md"
@@ -36,6 +36,17 @@ class TestRunInit:
         content = dest.read_text()
         assert content.startswith("---"), "Skill file should start with YAML frontmatter"
         assert "name: greenlit-Read" in content
+
+    def test_choice_2_writes_to_project_claude(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("greenlit.init_cmd._HOME", str(tmp_path / "home"))
+        monkeypatch.chdir(tmp_path)
+        with patch("greenlit.init_cmd.Prompt.ask", return_value="2"), \
+             patch("greenlit.init_cmd.console.print"):
+            run_init()
+        dest = tmp_path / ".claude" / "skills" / "greenlit-Read" / "SKILL.md"
+        assert dest.exists(), f"Expected skill file at {dest}"
+        content = dest.read_text()
+        assert "greenlit" in content.lower()
 
     def test_target_directory_created_if_missing(self, tmp_path, monkeypatch):
         monkeypatch.setattr("greenlit.init_cmd._HOME", str(tmp_path))

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Per-task-type **default constraints** — each task type carries up to three baseline CONSTRAINT lines, exposed via `get_default_constraints(task_type)` (single source of truth in the guidance layer).
+- New **`docs`** task type — full per-section guidance for writing, updating, or restructuring documentation, with its own default constraints.
+- Interactive walkthrough and `--lite` now seed the CONSTRAINT section with the task type's default constraints as editable starting content; the step UI marks it as a pre-filled default, and clearing it produces an empty CONSTRAINT.
+- `greenlit new` seeds the same default constraints unless `--set constraint=...` overrides them or the new `--no-default-constraints` flag opts out.
+
 ## [0.2.0] - 2026-07-05
 
 Repositions greenlit from a prompt-walkthrough CLI to a lightweight spec layer: the agent drafts, the human reviews, the agent verifies against DONE. **No compatibility shims** — pre-1.0 and previously unpublished, greenlit files from 0.1.0 are simply invalid under the new format.

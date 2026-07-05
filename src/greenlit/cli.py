@@ -31,7 +31,7 @@ from greenlit.display import (
     show_transition,
 )
 from greenlit.formatters import FORMATTERS
-from greenlit.guidance import get_guidance
+from greenlit.guidance import get_default_constraints, get_guidance
 from greenlit.sections import SECTIONS, TASK_TYPES
 
 
@@ -206,6 +206,12 @@ def run_new(args) -> None:
             stdin_used = True
         data[key] = val
 
+    # Seed default constraints unless the user set CONSTRAINT explicitly or opted out.
+    if "constraint" not in data and not getattr(args, "no_default_constraints", False):
+        defaults = get_default_constraints(args.type)
+        if defaults:
+            data["constraint"] = "\n".join(defaults)
+
     output = FORMATTERS[args.output](data, args.type)
 
     if getattr(args, "stdout", False):
@@ -331,6 +337,16 @@ def run(
     else:
         sections = SECTIONS
     data: dict[str, str] = dict(prefilled) if prefilled else {}
+
+    # Seed the CONSTRAINT section with the task type's default constraints as
+    # editable starting content. Never in review mode (the file is the contract).
+    prefilled_default_keys: set[str] = set()
+    if not review and "constraint" not in data:
+        defaults = get_default_constraints(task_type)
+        if defaults:
+            data["constraint"] = "\n".join(defaults)
+            prefilled_default_keys.add("constraint")
+
     step = 0
 
     while True:
@@ -382,7 +398,12 @@ def run(
 
         existing = data.get(section.key, "").strip()
         if existing:
-            console.print(f"  [{DIM}]current content:[/]")
+            if section.key in prefilled_default_keys:
+                console.print(
+                    f"  [{DIM}]pre-filled default — edit, keep, or clear all as needed:[/]"
+                )
+            else:
+                console.print(f"  [{DIM}]current content:[/]")
             for line in existing.split("\n")[:5]:
                 console.print(f"  [{MUTED}]│ {line}[/]")
             if existing.count("\n") > 4:
@@ -444,7 +465,10 @@ def run(
                 data[section.key] = content
                 console.print(f"  [{GREEN}]✓ {section.label} saved[/{GREEN}]")
             else:
+                # Cleared — drop any prior content (including a pre-filled default).
+                data.pop(section.key, None)
                 console.print(f"  [{DIM}]Empty — skipping[/{DIM}]")
+            prefilled_default_keys.discard(section.key)
             console.print()
             step += 1
 
@@ -566,6 +590,11 @@ def main():
         "--private",
         action="store_true",
         help="Add .greenlit/ to .gitignore (default: leave .gitignore untouched)",
+    )
+    new_p.add_argument(
+        "--no-default-constraints",
+        action="store_true",
+        help="Omit the task type's default CONSTRAINT lines",
     )
 
     # ── run (default walkthrough) — flags on the root parser ─────────

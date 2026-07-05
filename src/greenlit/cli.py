@@ -36,22 +36,23 @@ def _copy_to_clipboard(text: str) -> bool:
     """Copy text to system clipboard. Returns True on success."""
     system = platform.system()
     if system == "Darwin":
-        cmd = ["pbcopy"]
+        candidates = [["pbcopy"]]
     elif system == "Windows":
-        cmd = ["clip.exe"]
+        candidates = [["clip.exe"]]
     else:
-        for cmd in (
+        candidates = [
             ["xclip", "-selection", "clipboard"],
             ["xsel", "--clipboard", "--input"],
             ["wl-copy"],
-        ):
-            try:
-                proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
-                if proc.returncode == 0:
-                    return True
-            except (FileNotFoundError, subprocess.SubprocessError):
-                continue
-        return False
+        ]
+    for cmd in candidates:
+        try:
+            proc = subprocess.run(cmd, input=text.encode(), capture_output=True)
+            if proc.returncode == 0:
+                return True
+        except (FileNotFoundError, subprocess.SubprocessError):
+            continue
+    return False
 
 
 def _resolve_output_path(root_dir: str, name: str, task_type: str, fmt: str) -> str:

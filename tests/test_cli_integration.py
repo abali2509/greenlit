@@ -3,11 +3,11 @@ path-traversal guards, and a minimal run() walkthrough."""
 
 import os
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from greenlit.cli import _provision_output_dir, _resolve_output_path
+from greenlit.cli import _copy_to_clipboard, _provision_output_dir, _resolve_output_path
 
 # ── _resolve_output_path ──────────────────────────────────────────────────────
 
@@ -111,3 +111,37 @@ class TestPathTraversalGuards:
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 0  # KeyboardInterrupt exits 0, not 1
+
+
+# ── _copy_to_clipboard ────────────────────────────────────────────────────────
+
+class TestCopyToClipboard:
+    @pytest.mark.parametrize("system,expected_cmd", [
+        ("Darwin", ["pbcopy"]),
+        ("Windows", ["clip.exe"]),
+        ("Linux", ["xclip", "-selection", "clipboard"]),
+    ])
+    def test_runs_correct_command(self, system, expected_cmd):
+        mock_proc = MagicMock(returncode=0)
+        with patch("greenlit.cli.platform.system", return_value=system), \
+             patch("greenlit.cli.subprocess.run", return_value=mock_proc) as mock_run:
+            result = _copy_to_clipboard("hello")
+        assert result is True
+        called_cmd = mock_run.call_args[0][0]
+        assert called_cmd == expected_cmd
+
+    def test_returns_false_when_command_not_found(self):
+        with patch("greenlit.cli.platform.system", return_value="Darwin"), \
+             patch("greenlit.cli.subprocess.run", side_effect=FileNotFoundError):
+            result = _copy_to_clipboard("hello")
+        assert result is False
+
+    def test_linux_falls_through_to_next_candidate(self):
+        proc_ok = MagicMock(returncode=0)
+        proc_fail = MagicMock(returncode=1)
+        # xclip fails, xsel succeeds
+        with patch("greenlit.cli.platform.system", return_value="Linux"), \
+             patch("greenlit.cli.subprocess.run", side_effect=[proc_fail, proc_ok]) as mock_run:
+            result = _copy_to_clipboard("hello")
+        assert result is True
+        assert mock_run.call_count == 2

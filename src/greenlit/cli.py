@@ -83,6 +83,54 @@ def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
                     f.write("\n.greenlit/\n")
 
 
+def _save_prompt(
+    data: dict[str, str],
+    task_type: str,
+    fmt: str,
+    args,
+    prompt_name: str,
+) -> str:
+    """Write formatted prompt to disk, handle clipboard copy. Returns saved filename."""
+    output = FORMATTERS[fmt](data, task_type)
+    if args.file:
+        filename = args.file
+    else:
+        root_dir = getattr(args, "dir", ".greenlit")
+        filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
+        _provision_output_dir(filename, root_dir, os.getcwd())
+    with open(filename, "w") as f:
+        f.write(output)
+    console.print(f"  [{GREEN}]Saved to {filename}[/]")
+    if getattr(args, "copy", False):
+        if _copy_to_clipboard(output):
+            console.print(f"  [{GREEN}]Copied to clipboard[/]")
+        else:
+            msg = "Warning: no clipboard tool found (pbcopy/xclip/clip.exe)"
+            console.print(f"  [{ORANGE}]{msg}[/]")
+    return filename
+
+
+def _pick_section(data: dict[str, str], sections: list) -> int | None:
+    """Print section list and ask the user to pick one. Returns 0-based index or None."""
+    for i, s in enumerate(sections):
+        filled = "✓" if data.get(s.key, "").strip() else " "
+        style = GREEN if filled == "✓" else DIM
+        console.print(f"  [{style}]{i + 1}. {filled} {s.label}[/]")
+    console.print()
+    try:
+        pick = int(Prompt.ask(f"  [{ACCENT}]Section number[/]")) - 1
+        if 0 <= pick < len(sections):
+            return pick
+        err = f"Invalid section number — enter 1-{len(sections)}."
+        console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
+        console.print()
+    except (ValueError, KeyboardInterrupt):
+        err = f"Invalid section number — enter 1-{len(sections)}."
+        console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
+        console.print()
+    return None
+
+
 def run(args, task_types: dict | None = None):
     if task_types is None:
         task_types = TASK_TYPES
@@ -114,6 +162,7 @@ def run(args, task_types: dict | None = None):
     )
     console.print()
 
+    guidance_map = get_guidance(task_type)
     data: dict[str, str] = {}
     step = 0
 
@@ -136,39 +185,14 @@ def run(args, task_types: dict | None = None):
                     show_output(data, task_type, fmt)
                     console.print()
                 elif action == "save":
-                    output = FORMATTERS[fmt](data, task_type)
-                    if args.file:
-                        filename = args.file
-                    else:
-                        root_dir = getattr(args, "dir", ".greenlit")
-                        filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
-                        _provision_output_dir(filename, root_dir, os.getcwd())
-                    with open(filename, "w") as f:
-                        f.write(output)
-                    console.print(f"  [{GREEN}]Saved to {filename}[/]")
-
-                    if getattr(args, "copy", False):
-                        if _copy_to_clipboard(output):
-                            console.print(f"  [{GREEN}]Copied to clipboard[/]")
-                        else:
-                            msg = "Warning: no clipboard tool found (pbcopy/xclip/clip.exe)"
-                            console.print(f"  [{ORANGE}]{msg}[/]")
-
+                    _save_prompt(data, task_type, fmt, args, prompt_name)
                     console.print()
                     return
                 elif action == "edit":
-                    for i, s in enumerate(SECTIONS):
-                        filled = "✓" if data.get(s.key, "").strip() else " "
-                        style = GREEN if filled == "✓" else DIM
-                        console.print(f"  [{style}]{i + 1}. {filled} {s.label}[/]")
-                    console.print()
-                    try:
-                        pick = int(Prompt.ask(f"  [{ACCENT}]Section number[/]")) - 1
-                        if 0 <= pick < len(SECTIONS):
-                            step = pick
-                            break
-                    except (ValueError, KeyboardInterrupt):
-                        pass
+                    pick = _pick_section(data, SECTIONS)
+                    if pick is not None:
+                        step = pick
+                        break
                 elif action == "quit":
                     console.print(f"  [{DIM}]Done.[/]")
                     return
@@ -176,7 +200,6 @@ def run(args, task_types: dict | None = None):
             continue
 
         section = SECTIONS[step]
-        guidance_map = get_guidance(task_type)
         guidance = guidance_map[section.key]
 
         show_step_bar(step, data)
@@ -222,34 +245,12 @@ def run(args, task_types: dict | None = None):
             msg = "You have content — save before quitting?"
             if data and Confirm.ask(f"  [{ORANGE}]{msg}[/{ORANGE}]"):
                 fmt = args.output
-                if args.file:
-                    filename = args.file
-                else:
-                    root_dir = getattr(args, "dir", ".greenlit")
-                    filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
-                    _provision_output_dir(filename, root_dir, os.getcwd())
-                with open(filename, "w") as f:
-                    f.write(FORMATTERS[fmt](data, task_type))
-                console.print(f"  [{GREEN}]Saved to {filename}[/]")
+                _save_prompt(data, task_type, fmt, args, prompt_name)
             return
         elif action in ("e", "edit"):
-            for i, s in enumerate(SECTIONS):
-                filled = "✓" if data.get(s.key, "").strip() else " "
-                style = GREEN if filled == "✓" else DIM
-                console.print(f"  [{style}]{i + 1}. {filled} {s.label}[/]")
-            console.print()
-            try:
-                pick = int(Prompt.ask(f"  [{ACCENT}]Section number[/]")) - 1
-                if 0 <= pick < len(SECTIONS):
-                    step = pick
-                else:
-                    err = f"Invalid section number — enter 1-{len(SECTIONS)}."
-                    console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
-                    console.print()
-            except (ValueError, KeyboardInterrupt):
-                err = f"Invalid section number — enter 1-{len(SECTIONS)}."
-                console.print(f"  [{ORANGE}]{err}[/{ORANGE}]")
-                console.print()
+            pick = _pick_section(data, SECTIONS)
+            if pick is not None:
+                step = pick
         else:
             current = data.get(section.key, "") or section.default
             if getattr(args, "no_editor", False):

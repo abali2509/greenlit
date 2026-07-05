@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- `_copy_to_clipboard` now actually executes the command on macOS (`pbcopy`) and Windows (`clip.exe`); previously only the Linux fallback chain ran.
+- `greenlit init` option 2 now writes Copilot instructions to `<repo>/.github/instructions/greenlit.instructions.md` (repo-level, where Copilot reads it) instead of `~/.github/` (home directory, dead path).
+
+### Added
+- `greenlit init` option 3: install skill to `<cwd>/.claude/skills/greenlit-Read/SKILL.md` for project-level Claude Code.
+
+### Changed
+- `importlib.resources.read_text` replaced with `files().joinpath().read_text()` — eliminates deprecation warning.
+- `cli.py` internal: extracted `_save_prompt` and `_pick_section` helpers; `get_guidance` hoisted out of the section loop.
+
 ## [0.1.0] - 2026-04-08
 
 ### Added

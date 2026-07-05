@@ -264,11 +264,16 @@ def run(args, task_types: dict | None = None):
     console.print()
 
     guidance_map = get_guidance(task_type)
+    if getattr(args, "lite", False):
+        lite_keys = {"ask", "scope", "done"}
+        sections = [s for s in SECTIONS if s.key in lite_keys]
+    else:
+        sections = SECTIONS
     data: dict[str, str] = {}
     step = 0
 
     while True:
-        if step >= len(SECTIONS):
+        if step >= len(sections):
             fmt = args.output
             if getattr(args, "stdout", False):
                 output = FORMATTERS[fmt](data, task_type)
@@ -296,7 +301,7 @@ def run(args, task_types: dict | None = None):
                     console.print()
                     return
                 elif action == "edit":
-                    pick = _pick_section(data, SECTIONS)
+                    pick = _pick_section(data, sections)
                     if pick is not None:
                         step = pick
                         break
@@ -306,11 +311,11 @@ def run(args, task_types: dict | None = None):
 
             continue
 
-        section = SECTIONS[step]
+        section = sections[step]
         guidance = guidance_map[section.key]
 
-        show_step_bar(step, data)
-        show_section_header(section, guidance, step)
+        show_step_bar(step, data, sections)
+        show_section_header(section, guidance, step, len(sections))
         show_tips(guidance.tips)
         show_nav_help()
 
@@ -355,7 +360,7 @@ def run(args, task_types: dict | None = None):
                 _save_prompt(data, task_type, fmt, args, prompt_name)
             return
         elif action in ("e", "edit"):
-            pick = _pick_section(data, SECTIONS)
+            pick = _pick_section(data, sections)
             if pick is not None:
                 step = pick
         else:
@@ -502,6 +507,11 @@ def main():
         "--no-editor",
         action="store_true",
         help="Use inline input instead of opening vim/nvim",
+    )
+    parser.add_argument(
+        "--lite",
+        action="store_true",
+        help="Three-section walkthrough: ASK, SCOPE, DONE",
     )
     parser.add_argument(
         "--stdout",

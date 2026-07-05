@@ -230,9 +230,10 @@ def show_task_selector(task_types: dict) -> str:
     return short_to_full.get(answer, answer)
 
 
-def show_step_bar(current: int, data: dict):
+def show_step_bar(current: int, data: dict, sections: list | None = None):
+    sections = sections if sections is not None else SECTIONS
     parts = []
-    for i, s in enumerate(SECTIONS):
+    for i, s in enumerate(sections):
         filled = bool(data.get(s.key, "").strip())
         if i == current:
             parts.append(f"[bold {ACCENT}]▸ {s.label}[/]")
@@ -245,11 +246,12 @@ def show_step_bar(current: int, data: dict):
     console.print()
 
 
-def show_section_header(section, guidance, step: int):
+def show_section_header(section, guidance, step: int, total: int | None = None):
     g = guidance
+    total = total if total is not None else len(SECTIONS)
 
     console.print(
-        f"  [{ACCENT} bold]{section.label}[/]  [{DIM}]{step + 1}/{len(SECTIONS)}[/]"
+        f"  [{ACCENT} bold]{section.label}[/]  [{DIM}]{step + 1}/{total}[/]"
     )
     console.print(f"  [{MUTED}]{section.tagline}[/]")
     console.print()

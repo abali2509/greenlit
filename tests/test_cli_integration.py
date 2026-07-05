@@ -45,31 +45,40 @@ class TestProvisionOutputDir:
         _provision_output_dir(out_path, str(tmp_path), str(tmp_path))
         assert os.path.isdir(str(tmp_path / "sub" / "dir"))
 
-    def test_adds_greenlit_to_gitignore_when_default_root(self, tmp_path):
+    def test_does_not_touch_gitignore_by_default(self, tmp_path):
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text("node_modules/\n")
         greenlit_dir = tmp_path / ".greenlit"
         greenlit_dir.mkdir()
         out_path = str(greenlit_dir / "my-prompt" / "action.xml")
         _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path))
+        assert ".greenlit/" not in gitignore.read_text()
+
+    def test_private_flag_adds_greenlit_to_gitignore(self, tmp_path):
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text("node_modules/\n")
+        greenlit_dir = tmp_path / ".greenlit"
+        greenlit_dir.mkdir()
+        out_path = str(greenlit_dir / "my-prompt" / "action.xml")
+        _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path), private=True)
         assert ".greenlit/" in gitignore.read_text()
 
-    def test_does_not_duplicate_gitignore_entry(self, tmp_path):
+    def test_private_does_not_duplicate_gitignore_entry(self, tmp_path):
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text(".greenlit/\n")
         greenlit_dir = tmp_path / ".greenlit"
         greenlit_dir.mkdir()
         out_path = str(greenlit_dir / "my-prompt" / "action.xml")
-        _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path))
+        _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path), private=True)
         assert gitignore.read_text().count(".greenlit/") == 1
 
-    def test_does_not_add_gitignore_for_custom_root(self, tmp_path):
+    def test_private_does_not_add_gitignore_for_custom_root(self, tmp_path):
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text("node_modules/\n")
         custom_dir = tmp_path / "output"
         custom_dir.mkdir()
         out_path = str(custom_dir / "my-prompt" / "action.xml")
-        _provision_output_dir(out_path, str(custom_dir), str(tmp_path))
+        _provision_output_dir(out_path, str(custom_dir), str(tmp_path), private=True)
         assert ".greenlit/" not in gitignore.read_text()
 
 

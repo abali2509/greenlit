@@ -70,9 +70,13 @@ def _resolve_output_path(root_dir: str, name: str, task_type: str, fmt: str) -> 
         counter += 1
 
 
-def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
-    """Create the output directory and add .greenlit/ to .gitignore if applicable."""
+def _provision_output_dir(
+    out_path: str, root_dir: str, cwd: str, private: bool = False
+) -> None:
+    """Create the output directory; add .greenlit/ to .gitignore only when --private."""
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    if not private:
+        return
     default_root = os.path.realpath(os.path.join(cwd, ".greenlit"))
     if os.path.realpath(root_dir) == default_root:
         gitignore = os.path.join(cwd, ".gitignore")
@@ -124,7 +128,9 @@ def run_new(args) -> None:
         root_dir = args.dir
         prompt_name = args.name or args.type
         filename = _resolve_output_path(root_dir, prompt_name, args.type, args.output)
-        _provision_output_dir(filename, root_dir, os.getcwd())
+        _provision_output_dir(
+            filename, root_dir, os.getcwd(), private=getattr(args, "private", False)
+        )
 
     with open(filename, "w") as f:
         f.write(output)
@@ -145,7 +151,9 @@ def _save_prompt(
     else:
         root_dir = getattr(args, "dir", ".greenlit")
         filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
-        _provision_output_dir(filename, root_dir, os.getcwd())
+        _provision_output_dir(
+            filename, root_dir, os.getcwd(), private=getattr(args, "private", False)
+        )
     with open(filename, "w") as f:
         f.write(output)
     console.print(f"  [{GREEN}]Saved to {filename}[/]")
@@ -397,6 +405,11 @@ def main():
         action="store_true",
         help="Print to stdout instead of saving; UI chrome goes to stderr",
     )
+    new_p.add_argument(
+        "--private",
+        action="store_true",
+        help="Add .greenlit/ to .gitignore (default: leave .gitignore untouched)",
+    )
 
     # ── run (default walkthrough) — flags on the root parser ─────────
     parser.add_argument(
@@ -437,6 +450,11 @@ def main():
         "--stdout",
         action="store_true",
         help="Print to stdout instead of saving; UI chrome goes to stderr",
+    )
+    parser.add_argument(
+        "--private",
+        action="store_true",
+        help="Add .greenlit/ to .gitignore (default: leave .gitignore untouched)",
     )
 
     args = parser.parse_args()

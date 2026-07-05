@@ -1,4 +1,4 @@
-"""greenlit init — install the bundled skill template into ~/.claude/skills/ or ~/.github/."""
+"""greenlit init — install the bundled skill into ~/.claude/skills/ or .github/instructions/."""
 
 import importlib.resources
 import os
@@ -10,19 +10,20 @@ from greenlit.display import ACCENT, DIM, GREEN, console
 _HOME = os.path.expanduser("~")
 
 
-def _get_targets() -> dict[str, tuple[str, str]]:
+def _get_targets(cwd: str) -> dict[str, tuple[str, str]]:
     return {
         "1": (os.path.join(_HOME, ".claude", "skills", "greenlit-Read"), "SKILL.md"),
-        "2": (os.path.join(_HOME, ".github"), "read-greenlit-prompt.md"),
+        "2": (os.path.join(cwd, ".github", "instructions"), "greenlit.instructions.md"),
     }
 
 
 def run_init() -> None:
+    cwd = os.getcwd()
     console.print()
     console.print(f"  [{ACCENT}]greenlit init[/] — install agent skill\n")
     console.print(f"  [{DIM}]Where should the skill be written?[/]")
-    console.print(f"  [{DIM}]  1  ~/.claude/skills/  (Claude Code)[/]")
-    console.print(f"  [{DIM}]  2  ~/.github/          (GitHub Copilot)[/]")
+    console.print(f"  [{DIM}]  1  ~/.claude/skills/greenlit-Read/  (Claude Code, user-global)[/]")
+    console.print(f"  [{DIM}]  2  .github/instructions/            (GitHub Copilot, repo-level)[/]")
     console.print()
 
     choice = Prompt.ask(
@@ -31,7 +32,7 @@ def run_init() -> None:
         show_choices=False,
     )
 
-    target_dir, filename = _get_targets()[choice]
+    target_dir, filename = _get_targets(cwd)[choice]
     dest = os.path.join(target_dir, filename)
 
     skill_text = importlib.resources.read_text("greenlit.skills", "skill.md")

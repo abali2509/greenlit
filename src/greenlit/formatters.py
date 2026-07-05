@@ -5,9 +5,11 @@ from collections.abc import Callable
 
 from greenlit.sections import SECTIONS
 
+_FORMAT_VERSION = "0.2"
+
 
 def format_xml(data: dict, task_type: str) -> str:
-    lines = [f'<prompt type="{task_type}">']
+    lines = [f'<prompt type="{task_type}" greenlit="{_FORMAT_VERSION}">']
     for s in SECTIONS:
         val = data.get(s.key, "").strip()
         if val:
@@ -21,7 +23,7 @@ def format_xml(data: dict, task_type: str) -> str:
 
 
 def format_markdown(data: dict, task_type: str) -> str:
-    lines = [f"# {task_type.upper()} PROMPT", ""]
+    lines = [f"# {task_type.upper()} PROMPT", f"<!-- greenlit: {_FORMAT_VERSION} -->", ""]
     for s in SECTIONS:
         val = data.get(s.key, "").strip()
         if val:

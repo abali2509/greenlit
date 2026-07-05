@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `greenlit new -t <type> --set key=value ...` — non-interactive prompt creation; `key=-` reads from stdin; `--stdout` prints instead of saving.
+- `--stdout` flag for both `new` and the interactive walkthrough: formatted prompt goes to stdout, all UI chrome to stderr (pipeline-safe).
+- `--private` flag: opt in to writing `.greenlit/` to `.gitignore` (default is now to leave `.gitignore` untouched, version-controlling specs).
+- `greenlit list` — tabulates saved prompts in `.greenlit/` (name, type, format, modified).
+- `greenlit show <path>` — prints a saved prompt file to stdout.
+- Format version stamp: XML gets `greenlit="0.2"` attribute; Markdown gets `<!-- greenlit: 0.2 -->` comment.
+
 ### Removed
 - DELEGATION section removed from the prompt format, all task-type guidance, and the greenlit-Read skill. Orchestrators self-decompose; DELEGATION added ceremony without value.
 - JSON output format removed. XML and Markdown are the two canonically supported formats; JSON was semantically identical to XML with no distinct consumers.

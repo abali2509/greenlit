@@ -1,6 +1,7 @@
 """CLI entry point: argparse, main loop."""
 
 import argparse
+import datetime
 import os
 import platform
 import subprocess
@@ -8,7 +9,9 @@ import sys
 from pathlib import Path
 
 from rich.prompt import Confirm, Prompt
+from rich.table import Table
 
+import greenlit.display as _display
 from greenlit.display import (
     ACCENT,
     DIM,
@@ -69,9 +72,13 @@ def _resolve_output_path(root_dir: str, name: str, task_type: str, fmt: str) -> 
         counter += 1
 
 
-def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
-    """Create the output directory and add .greenlit/ to .gitignore if applicable."""
+def _provision_output_dir(
+    out_path: str, root_dir: str, cwd: str, private: bool = False
+) -> None:
+    """Create the output directory; add .greenlit/ to .gitignore only when --private."""
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    if not private:
+        return
     default_root = os.path.realpath(os.path.join(cwd, ".greenlit"))
     if os.path.realpath(root_dir) == default_root:
         gitignore = os.path.join(cwd, ".gitignore")
@@ -81,6 +88,98 @@ def _provision_output_dir(out_path: str, root_dir: str, cwd: str) -> None:
             if ".greenlit/" not in existing and ".greenlit\n" not in existing:
                 with open(gitignore, "a") as f:
                     f.write("\n.greenlit/\n")
+
+
+def run_list(args) -> None:
+    """Walk .greenlit/ and print a table of saved prompts."""
+    root = Path(args.dir)
+    if not root.is_dir():
+        console.print(f"  [{DIM}]No prompts found — {root}/ does not exist.[/]")
+        return
+
+    entries = []
+    for prompt_dir in sorted(root.iterdir()):
+        if not prompt_dir.is_dir():
+            continue
+        for f in sorted(prompt_dir.iterdir()):
+            if f.suffix not in (".xml", ".md"):
+                continue
+            fmt = "xml" if f.suffix == ".xml" else "markdown"
+            mtime = datetime.datetime.fromtimestamp(f.stat().st_mtime)
+            entries.append((prompt_dir.name, f.stem, fmt, mtime.strftime("%Y-%m-%d %H:%M")))
+
+    if not entries:
+        console.print(f"  [{DIM}]No prompts found in {root}/[/]")
+        return
+
+    table = Table(show_header=True, box=None, pad_edge=False, show_edge=False)
+    table.add_column("name", style=GREEN)
+    table.add_column("type", style=ACCENT)
+    table.add_column("format", style=DIM)
+    table.add_column("modified", style=DIM)
+    for name, stem, fmt, mtime in entries:
+        table.add_row(name, stem, fmt, mtime)
+    console.print()
+    console.print(table)
+    console.print()
+
+
+def run_show(args) -> None:
+    """Print a prompt file to stdout."""
+    path = Path(args.path)
+    if not path.exists():
+        console.print(f"  [red]File not found: {path}[/]")
+        sys.exit(1)
+    sys.stdout.write(path.read_text())
+
+
+def run_new(args) -> None:
+    """Non-interactive prompt creation from --set key=value pairs."""
+    valid_keys = {s.key for s in SECTIONS}
+    data: dict[str, str] = {}
+    stdin_used = False
+
+    for kv in (args.set or []):
+        if "=" not in kv:
+            console.print(f"  [red]--set requires key=value format, got {kv!r}[/]")
+            sys.exit(1)
+        key, _, val = kv.partition("=")
+        if key not in valid_keys:
+            console.print(
+                f"  [red]Unknown section {key!r}. "
+                f"Valid keys: {', '.join(sorted(valid_keys))}[/]"
+            )
+            sys.exit(1)
+        if val == "-":
+            if stdin_used:
+                console.print("  [red]Only one --set key=- (stdin read) is allowed.[/]")
+                sys.exit(1)
+            val = sys.stdin.read()
+            stdin_used = True
+        data[key] = val
+
+    output = FORMATTERS[args.output](data, args.type)
+
+    if getattr(args, "stdout", False):
+        sys.stdout.write(output)
+        if not output.endswith("\n"):
+            sys.stdout.write("\n")
+        return
+
+    if args.file:
+        filename = args.file
+        os.makedirs(os.path.dirname(os.path.abspath(filename)) or ".", exist_ok=True)
+    else:
+        root_dir = args.dir
+        prompt_name = args.name or args.type
+        filename = _resolve_output_path(root_dir, prompt_name, args.type, args.output)
+        _provision_output_dir(
+            filename, root_dir, os.getcwd(), private=getattr(args, "private", False)
+        )
+
+    with open(filename, "w") as f:
+        f.write(output)
+    console.print(f"  [{GREEN}]Saved to {filename}[/]")
 
 
 def _save_prompt(
@@ -97,7 +196,9 @@ def _save_prompt(
     else:
         root_dir = getattr(args, "dir", ".greenlit")
         filename = _resolve_output_path(root_dir, prompt_name, task_type, fmt)
-        _provision_output_dir(filename, root_dir, os.getcwd())
+        _provision_output_dir(
+            filename, root_dir, os.getcwd(), private=getattr(args, "private", False)
+        )
     with open(filename, "w") as f:
         f.write(output)
     console.print(f"  [{GREEN}]Saved to {filename}[/]")
@@ -169,6 +270,12 @@ def run(args, task_types: dict | None = None):
     while True:
         if step >= len(SECTIONS):
             fmt = args.output
+            if getattr(args, "stdout", False):
+                output = FORMATTERS[fmt](data, task_type)
+                sys.stdout.write(output)
+                if not output.endswith("\n"):
+                    sys.stdout.write("\n")
+                return
             show_output(data, task_type, fmt)
             console.print()
 
@@ -301,6 +408,66 @@ def main():
         ),
     )
 
+    # ── list subcommand ───────────────────────────────────────────────
+    list_p = subparsers.add_parser("list", help="List saved prompts in .greenlit/")
+    list_p.add_argument(
+        "--dir", "-d",
+        default=".greenlit",
+        help="Root directory to list (default: .greenlit/)",
+    )
+
+    # ── show subcommand ───────────────────────────────────────────────
+    show_p = subparsers.add_parser("show", help="Print a saved prompt file to stdout")
+    show_p.add_argument("path", help="Path to the prompt file")
+
+    # ── new subcommand ────────────────────────────────────────────────
+    new_p = subparsers.add_parser(
+        "new",
+        help="Create a prompt non-interactively from --set key=value pairs",
+    )
+    new_p.add_argument(
+        "--type", "-t",
+        choices=list(TASK_TYPES.keys()),
+        required=True,
+        help="Task type",
+    )
+    new_p.add_argument(
+        "--set", "-s",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Set a section value (use KEY=- to read from stdin)",
+    )
+    new_p.add_argument(
+        "--output", "-o",
+        choices=["xml", "markdown"],
+        default="markdown",
+        help="Output format (default: markdown)",
+    )
+    new_p.add_argument(
+        "--file", "-f",
+        help="Full output path (overrides --dir / --name)",
+    )
+    new_p.add_argument(
+        "--dir", "-d",
+        default=".greenlit",
+        help="Root output directory (default: .greenlit/)",
+    )
+    new_p.add_argument(
+        "--name", "-n",
+        help="Prompt namespace slug (default: task type)",
+    )
+    new_p.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print to stdout instead of saving; UI chrome goes to stderr",
+    )
+    new_p.add_argument(
+        "--private",
+        action="store_true",
+        help="Add .greenlit/ to .gitignore (default: leave .gitignore untouched)",
+    )
+
     # ── run (default walkthrough) — flags on the root parser ─────────
     parser.add_argument(
         "--type", "-t",
@@ -336,10 +503,52 @@ def main():
         action="store_true",
         help="Use inline input instead of opening vim/nvim",
     )
+    parser.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print to stdout instead of saving; UI chrome goes to stderr",
+    )
+    parser.add_argument(
+        "--private",
+        action="store_true",
+        help="Add .greenlit/ to .gitignore (default: leave .gitignore untouched)",
+    )
 
     args = parser.parse_args()
 
+    # ── stdout mode: redirect UI chrome to stderr ─────────────────────
+    if getattr(args, "stdout", False):
+        global console  # noqa: PLW0603
+        _display.use_stderr()
+        console = _display.console
+
     # ── dispatch init ─────────────────────────────────────────────────
+    if args.command == "list":
+        run_list(args)
+        return
+
+    if args.command == "show":
+        run_show(args)
+        return
+
+    if args.command == "new":
+        cwd = Path(os.path.realpath(os.getcwd()))
+        if args.file:
+            target = Path(os.path.realpath(os.path.abspath(args.file)))
+            if not (target == cwd or target.is_relative_to(cwd)):
+                console.print("  [red]Error: --file path must be within the current directory.[/]")
+                sys.exit(1)
+        if args.dir:
+            target = Path(os.path.realpath(os.path.abspath(args.dir)))
+            if not (target == cwd or target.is_relative_to(cwd)):
+                console.print("  [red]Error: --dir path must be within the current directory.[/]")
+                sys.exit(1)
+        try:
+            run_new(args)
+        except KeyboardInterrupt:
+            console.print(f"\n  [{DIM}]Interrupted.[/{DIM}]")
+        return
+
     if args.command == "init":
         from greenlit.init_cmd import run_init
         try:

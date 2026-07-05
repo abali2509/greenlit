@@ -46,6 +46,13 @@ Console.input = _rl_console_input
 
 console = Console()
 
+
+def use_stderr() -> None:
+    """Switch all console output to stderr (for --stdout pipeline mode)."""
+    global console
+    console = Console(stderr=True)
+
+
 # ── Colour constants ──────────────────────────────────────────────────
 ACCENT = "bright_green"
 DIM = "bright_black"

@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Interactive walkthrough and `--lite` now seed the CONSTRAINT section with the task type's default constraints as editable starting content; the step UI marks it as a pre-filled default, and clearing it produces an empty CONSTRAINT.
 - `greenlit new` seeds the same default constraints unless `--set constraint=...` overrides them or the new `--no-default-constraints` flag opts out.
 - The `greenlit draft` meta-prompt now lists the task type's default constraints as required baseline lines the agent must include verbatim (all types' defaults when the type is inferred), and instructs the agent to fall back to explicit, ATTENTION-logged assumptions instead of blocking when run headless with no way to ask clarifying questions.
+- The **greenlit-Write** skill now embeds the per-type default constraints table and instructs the agent to seed CONSTRAINT with them verbatim, restating that constraints live in the spec and are never applied out-of-band. greenlit-Read is unchanged.
 
 ## [0.2.0] - 2026-07-05
 

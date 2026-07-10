@@ -170,6 +170,8 @@ Both **greenlit-Read** (execute a spec) and **greenlit-Write** (author one) are 
 - **Big, novel task** → flow 3 (full walkthrough).
 - **Automation / scripts / other agents** → flow 5 (`new --stdout`).
 
+Pick the task type with `-t` (or at the walkthrough prompt): `review`, `plan`, `action`, `debug`, `research`, `docs`.
+
 ---
 
 ## Task types
@@ -181,6 +183,30 @@ Both **greenlit-Read** (execute a spec) and **greenlit-Write** (author one) are 
 | `action` | Implementation, refactoring, migration |
 | `debug` | Diagnose failures, trace bugs, root cause analysis |
 | `research` | Spikes, investigations, trade-off analysis |
+| `docs` | Write, update, or restructure documentation |
+
+---
+
+## Default constraints
+
+Each task type seeds a few **default constraints** into the CONSTRAINT section — up to three baseline rules that guard that type's classic failure mode. They're written into the spec as editable starting content: you see them, and you can amend or delete them before greenlighting. They are never applied invisibly at execution time — the saved spec stays the complete contract.
+
+| Task type | Default constraints |
+|-----------|---------------------|
+| `review` | Read-only: do not create, modify, or commit any files. · Report findings, do not fix them. · Every finding must reference a file and line. |
+| `plan` | Do not implement anything — the plan is the only output. · Surface assumptions and open questions explicitly rather than resolving them silently. |
+| `action` | Change nothing outside SCOPE. · Do not add or upgrade dependencies without flagging first. · If a DONE criterion cannot be met, stop and report — never redefine done. |
+| `debug` | Reproduce the failure before changing anything. · Fix the root cause with the smallest change; no opportunistic refactoring. · Never modify or delete tests to make them pass. |
+| `research` | Do not modify the codebase. · Distinguish verified fact from inference. · Cite sources for external claims. |
+| `docs` | Modify only documentation files; never change code behavior. · Match the existing documentation's voice and conventions. · Verify that examples and commands in the docs actually run. |
+
+Every authoring path seeds the same defaults: the walkthrough and `--lite` pre-fill CONSTRAINT with them, the `greenlit draft` meta-prompt lists them as required baseline lines, and the greenlit-Write skill embeds them. For `greenlit new`:
+
+```bash
+greenlit new -t review --set ask="Review the auth refactor"      # seeds review defaults
+greenlit new -t review --set ask="..." --set constraint="Focus on the token store only"  # your value replaces defaults
+greenlit new -t review --set ask="..." --no-default-constraints  # empty CONSTRAINT
+```
 
 ---
 

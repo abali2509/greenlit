@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - New **`docs`** task type — full per-section guidance for writing, updating, or restructuring documentation, with its own default constraints.
 - Interactive walkthrough and `--lite` now seed the CONSTRAINT section with the task type's default constraints as editable starting content; the step UI marks it as a pre-filled default, and clearing it produces an empty CONSTRAINT.
 - `greenlit new` seeds the same default constraints unless `--set constraint=...` overrides them or the new `--no-default-constraints` flag opts out.
+- The `greenlit draft` meta-prompt now lists the task type's default constraints as required baseline lines the agent must include verbatim (all types' defaults when the type is inferred), and instructs the agent to fall back to explicit, ATTENTION-logged assumptions instead of blocking when run headless with no way to ask clarifying questions.
 
 ## [0.2.0] - 2026-07-05
 

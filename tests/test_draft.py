@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 from greenlit.cli import main
 from greenlit.draft_meta import build_meta_prompt
-from greenlit.sections import SECTIONS
+from greenlit.guidance import get_default_constraints
+from greenlit.sections import SECTIONS, TASK_TYPES
 
 SECTION_KEYS = [s.key for s in SECTIONS]
 
@@ -38,6 +39,37 @@ class TestBuildMetaPrompt:
     def test_instructs_to_interview(self):
         meta = build_meta_prompt("Do a thing")
         assert "clarifying question" in meta.lower() or "interview" in meta.lower()
+
+    def test_headless_falls_back_to_assumptions_not_blocking(self):
+        meta = build_meta_prompt("Do a thing")
+        low = meta.lower()
+        assert "headless" in low
+        assert "assumption" in low
+        # unresolved questions land in ATTENTION for the human, not a blocked wait
+        assert "ATTENTION" in meta
+
+    def test_explicit_type_lists_its_default_constraints_verbatim(self):
+        for task_type in TASK_TYPES:
+            meta = build_meta_prompt("Do a thing", task_type=task_type)
+            for constraint in get_default_constraints(task_type):
+                assert constraint in meta, (
+                    f"{task_type} meta-prompt missing default constraint: {constraint!r}"
+                )
+
+    def test_explicit_type_requires_constraints_verbatim(self):
+        meta = build_meta_prompt("Refactor auth", task_type="action")
+        low = meta.lower()
+        assert "required" in low
+        assert "verbatim" in low
+
+    def test_inferred_type_applies_selected_types_defaults(self):
+        meta = build_meta_prompt("Do a thing")
+        # instruction to apply whichever type's defaults it selects
+        assert "whichever task type you select" in meta.lower()
+        # every type's defaults are available in the prompt for the agent to pick
+        for task_type in TASK_TYPES:
+            for constraint in get_default_constraints(task_type):
+                assert constraint in meta
 
 
 class TestDraftSubcommand:

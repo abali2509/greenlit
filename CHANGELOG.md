@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-10
+
+Per-task-type **default constraints** and a new **`docs`** task type. Each task type now seeds up to three baseline CONSTRAINT lines that guard its classic failure mode; they are written into the spec as editable content and never applied out-of-band — the saved spec stays the complete contract.
+
 ### Added
 - Per-task-type **default constraints** — each task type carries up to three baseline CONSTRAINT lines, exposed via `get_default_constraints(task_type)` (single source of truth in the guidance layer).
 - New **`docs`** task type — full per-section guidance for writing, updating, or restructuring documentation, with its own default constraints.
 - Interactive walkthrough and `--lite` now seed the CONSTRAINT section with the task type's default constraints as editable starting content; the step UI marks it as a pre-filled default, and clearing it produces an empty CONSTRAINT.
 - `greenlit new` seeds the same default constraints unless `--set constraint=...` overrides them or the new `--no-default-constraints` flag opts out.
+- The `greenlit draft` meta-prompt now lists the task type's default constraints as required baseline lines the agent must include verbatim (all types' defaults when the type is inferred), and instructs the agent to fall back to explicit, ATTENTION-logged assumptions instead of blocking when run headless with no way to ask clarifying questions.
+- The **greenlit-Write** skill now embeds the per-type default constraints table and instructs the agent to seed CONSTRAINT with them verbatim, restating that constraints live in the spec and are never applied out-of-band. greenlit-Read is unchanged.
 
 ## [0.2.0] - 2026-07-05
 

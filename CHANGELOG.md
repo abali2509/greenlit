@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-07-10
+## [0.3.0] - 2026-07-18
 
 Per-task-type **default constraints** and a new **`docs`** task type. Each task type now seeds up to three baseline CONSTRAINT lines that guard its classic failure mode; they are written into the spec as editable content and never applied out-of-band — the saved spec stays the complete contract.
 

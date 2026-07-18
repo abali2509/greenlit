@@ -24,7 +24,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run tests with coverage
-        run: uv run --with pytest --with pytest-cov --extra templates pytest -v --cov=greenlit --cov-report=term-missing
+        run: uv run --with pytest --with pytest-cov pytest -v --cov=greenlit --cov-report=term-missing
 
   lint:
     name: Lint
@@ -52,8 +52,10 @@ jobs:
       - name: Build wheel
         run: uv build
 
-      - name: Assert skill.md in wheel
-        run: unzip -l dist/*.whl | grep -q "greenlit/skills/skill.md"
+      - name: Assert both skills in wheel
+        run: |
+          unzip -l dist/*.whl | grep -q "greenlit/skills/skill.md"
+          unzip -l dist/*.whl | grep -q "greenlit/skills/skill_write.md"
 
       - name: Install wheel into clean venv and run greenlit init
         run: |

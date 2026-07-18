@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Reproduce the failure before changing anything.",
+    "Fix the root cause with the smallest change; no opportunistic refactoring.",
+    "Never modify or delete tests to make them pass.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint="Describe the symptom. Observed vs expected behaviour in one sentence.",
@@ -54,20 +60,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Use IN / RULED OUT / OUT explicitly",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Split the investigation by subsystem or hypothesis if parallel diagnosis helps.",
-        placeholder=(
-            "Agent 1 — Trace the data path through loader.py\n"
-            "Agent 2 — Check recent dependency changes for silent-failure "
-            "regressions\n"
-            "Agent 3 — Reproduce locally with minimal test case"
-        ),
-        tips=[
-            "Assign each agent a distinct hypothesis to validate",
-            "Define how agents report findings — confidence level, evidence",
-            "One agent should own writing the reproducing test case",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="Error traces, metrics dashboards, recent deploy diffs, relevant source files.",
         placeholder=(
@@ -117,6 +109,20 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name past incidents that looked the same but had different causes",
             "Flag metrics or signals that are misleading in this system",
             "Warn about any 'obvious' fixes that were tried and didn't work",
+        ],
+    ),
+    "done": SectionGuidance(
+        hint="How you'll prove the bug is fixed, not just theorised about.",
+        placeholder=(
+            "- WHEN the reproducing test runs, `pytest tests/test_loader.py::test_incremental` "
+            "SHALL pass (it currently fails).\n"
+            "- WHEN an incremental load runs, the row count SHALL match the source.\n"
+            "- Root cause is documented with evidence, not speculation."
+        ),
+        tips=[
+            "A failing reproducing test that now passes is the gold standard",
+            "Write EARS-style: WHEN <condition>, the system SHALL <behavior>",
+            "Include the command that demonstrates the fix",
         ],
     ),
 }

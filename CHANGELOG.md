@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [0.3.0] - 2026-07-10
+
+Per-task-type **default constraints** and a new **`docs`** task type. Each task type now seeds up to three baseline CONSTRAINT lines that guard its classic failure mode; they are written into the spec as editable content and never applied out-of-band — the saved spec stays the complete contract.
+
+### Added
+- Per-task-type **default constraints** — each task type carries up to three baseline CONSTRAINT lines, exposed via `get_default_constraints(task_type)` (single source of truth in the guidance layer).
+- New **`docs`** task type — full per-section guidance for writing, updating, or restructuring documentation, with its own default constraints.
+- Interactive walkthrough and `--lite` now seed the CONSTRAINT section with the task type's default constraints as editable starting content; the step UI marks it as a pre-filled default, and clearing it produces an empty CONSTRAINT.
+- `greenlit new` seeds the same default constraints unless `--set constraint=...` overrides them or the new `--no-default-constraints` flag opts out.
+- The `greenlit draft` meta-prompt now lists the task type's default constraints as required baseline lines the agent must include verbatim (all types' defaults when the type is inferred), and instructs the agent to fall back to explicit, ATTENTION-logged assumptions instead of blocking when run headless with no way to ask clarifying questions.
+- The **greenlit-Write** skill now embeds the per-type default constraints table and instructs the agent to seed CONSTRAINT with them verbatim, restating that constraints live in the spec and are never applied out-of-band. greenlit-Read is unchanged.
+
+## [0.2.0] - 2026-07-05
+
+Repositions greenlit from a prompt-walkthrough CLI to a lightweight spec layer: the agent drafts, the human reviews, the agent verifies against DONE. **No compatibility shims** — pre-1.0 and previously unpublished, greenlit files from 0.1.0 are simply invalid under the new format.
+
+### Added
+- DONE section — testable acceptance criteria (EARS-style, runnable checks), positioned last. The greenlit-Read skill now executes every DONE item and reports pass/fail before declaring completion.
+- `greenlit draft "<ask>"` — emits an agent-authoring meta-prompt (stdout, optional `--copy`) that tells an agent to interview the user and produce a greenlit spec. Offline, no dependencies.
+- `greenlit review <file>` — loads an existing greenlit file (XML or Markdown) and steps through it with content pre-filled, reframing guidance as review checklists.
+- `greenlit new -t <type> --set key=value ...` — non-interactive prompt creation; `key=-` reads from stdin; `--stdout` prints instead of saving.
+- `greenlit list` / `greenlit show <path>` — tabulate the `.greenlit/` library and print a saved spec to stdout.
+- `--lite` flag — three-section walkthrough (ASK, SCOPE, DONE) for medium-sized tasks.
+- `--stdout` flag for `new` and the walkthrough: formatted spec to stdout, all UI chrome to stderr (pipeline-safe).
+- `--private` flag: opt in to writing `.greenlit/` to `.gitignore`.
+- Second bundled skill `greenlit-Write` — teaches an agent to author greenlit specs. `greenlit init` now installs both skills per target, and offers project-level Claude Code (`.claude/skills/`) alongside user-global Claude and repo-level Copilot.
+- `parser.py` — XML/Markdown prompt parser with round-trip guarantees against the formatters.
+- Format version stamp: XML gets a `greenlit="0.2"` attribute; Markdown gets a `<!-- greenlit: 0.2 -->` comment.
+
+### Changed
+- `.greenlit/` is now version-controlled by default — the `.gitignore` auto-append was removed (opt back in with `--private`). Specs are intent worth committing.
+- Repositioned package description and README around the draft → review → execute → verify loop; README leads with `uvx greenlit`.
+- Release workflow now publishes to real PyPI via Trusted Publishing on `v*` tags.
+- `greenlit init` (0.1 fixes): Copilot instructions now install to repo-level `.github/instructions/` (was a dead `~/.github/` path); `importlib.resources.read_text` replaced with `files().joinpath().read_text()`.
+
+### Removed
+- DELEGATION section — from the format, all task-type guidance, and the skill. Orchestrators self-decompose; it added ceremony without value.
+- JSON output format — XML and Markdown are the two canonical formats; JSON was semantically identical to XML with no distinct consumers.
+- YAML custom template system (`templates.py`, `--template/-T`, the `pyyaml` optional dependency, `register_guidance`) — fought the tool's simplicity value. **`rich` is now the only dependency, with zero extras.**
+
+### Fixed
+- `_copy_to_clipboard` now actually executes the command on macOS (`pbcopy`) and Windows (`clip.exe`); previously only the Linux fallback chain ran.
+
 ## [0.1.0] - 2026-04-08
 
 ### Added

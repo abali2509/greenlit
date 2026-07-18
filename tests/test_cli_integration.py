@@ -3,11 +3,12 @@ path-traversal guards, and a minimal run() walkthrough."""
 
 import os
 import sys
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from greenlit.cli import _provision_output_dir, _resolve_output_path
+from greenlit.cli import _copy_to_clipboard, _provision_output_dir, _resolve_output_path, main, run
 
 # ── _resolve_output_path ──────────────────────────────────────────────────────
 
@@ -45,31 +46,40 @@ class TestProvisionOutputDir:
         _provision_output_dir(out_path, str(tmp_path), str(tmp_path))
         assert os.path.isdir(str(tmp_path / "sub" / "dir"))
 
-    def test_adds_greenlit_to_gitignore_when_default_root(self, tmp_path):
+    def test_does_not_touch_gitignore_by_default(self, tmp_path):
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text("node_modules/\n")
         greenlit_dir = tmp_path / ".greenlit"
         greenlit_dir.mkdir()
         out_path = str(greenlit_dir / "my-prompt" / "action.xml")
         _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path))
+        assert ".greenlit/" not in gitignore.read_text()
+
+    def test_private_flag_adds_greenlit_to_gitignore(self, tmp_path):
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text("node_modules/\n")
+        greenlit_dir = tmp_path / ".greenlit"
+        greenlit_dir.mkdir()
+        out_path = str(greenlit_dir / "my-prompt" / "action.xml")
+        _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path), private=True)
         assert ".greenlit/" in gitignore.read_text()
 
-    def test_does_not_duplicate_gitignore_entry(self, tmp_path):
+    def test_private_does_not_duplicate_gitignore_entry(self, tmp_path):
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text(".greenlit/\n")
         greenlit_dir = tmp_path / ".greenlit"
         greenlit_dir.mkdir()
         out_path = str(greenlit_dir / "my-prompt" / "action.xml")
-        _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path))
+        _provision_output_dir(out_path, str(greenlit_dir), str(tmp_path), private=True)
         assert gitignore.read_text().count(".greenlit/") == 1
 
-    def test_does_not_add_gitignore_for_custom_root(self, tmp_path):
+    def test_private_does_not_add_gitignore_for_custom_root(self, tmp_path):
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text("node_modules/\n")
         custom_dir = tmp_path / "output"
         custom_dir.mkdir()
         out_path = str(custom_dir / "my-prompt" / "action.xml")
-        _provision_output_dir(out_path, str(custom_dir), str(tmp_path))
+        _provision_output_dir(out_path, str(custom_dir), str(tmp_path), private=True)
         assert ".greenlit/" not in gitignore.read_text()
 
 
@@ -111,3 +121,262 @@ class TestPathTraversalGuards:
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 0  # KeyboardInterrupt exits 0, not 1
+
+
+# ── _copy_to_clipboard ────────────────────────────────────────────────────────
+
+class TestCopyToClipboard:
+    @pytest.mark.parametrize("system,expected_cmd", [
+        ("Darwin", ["pbcopy"]),
+        ("Windows", ["clip.exe"]),
+        ("Linux", ["xclip", "-selection", "clipboard"]),
+    ])
+    def test_runs_correct_command(self, system, expected_cmd):
+        mock_proc = MagicMock(returncode=0)
+        with patch("greenlit.cli.platform.system", return_value=system), \
+             patch("greenlit.cli.subprocess.run", return_value=mock_proc) as mock_run:
+            result = _copy_to_clipboard("hello")
+        assert result is True
+        called_cmd = mock_run.call_args[0][0]
+        assert called_cmd == expected_cmd
+
+    def test_returns_false_when_command_not_found(self):
+        with patch("greenlit.cli.platform.system", return_value="Darwin"), \
+             patch("greenlit.cli.subprocess.run", side_effect=FileNotFoundError):
+            result = _copy_to_clipboard("hello")
+        assert result is False
+
+    def test_linux_falls_through_to_next_candidate(self):
+        proc_ok = MagicMock(returncode=0)
+        proc_fail = MagicMock(returncode=1)
+        # xclip fails, xsel succeeds
+        with patch("greenlit.cli.platform.system", return_value="Linux"), \
+             patch("greenlit.cli.subprocess.run", side_effect=[proc_fail, proc_ok]) as mock_run:
+            result = _copy_to_clipboard("hello")
+        assert result is True
+        assert mock_run.call_count == 2
+
+
+# ── greenlit new ──────────────────────────────────────────────────────────────
+
+class TestNewSubcommand:
+    def test_creates_xml_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "ask=Refactor the auth module",
+            "--set", "scope=auth/ only",
+            "-o", "xml", "-n", "auth-refactor",
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        out = tmp_path / ".greenlit" / "auth-refactor" / "action.xml"
+        assert out.exists()
+        content = out.read_text()
+        assert "Refactor the auth module" in content
+        assert "<ask>" in content
+        assert "<scope>" in content
+
+    def test_creates_markdown_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "review",
+            "--set", "ask=Review the PR",
+            "-o", "markdown", "-n", "pr-review",
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        out = tmp_path / ".greenlit" / "pr-review" / "review.md"
+        assert out.exists()
+        assert "Review the PR" in out.read_text()
+
+    def test_unknown_section_key_exits_1(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "bogus=value",
+        ])
+        with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    def test_custom_name_and_dir(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        out_dir = tmp_path / "specs"
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "plan",
+            "--set", "ask=Design the new API",
+            "-n", "api-design", "-d", str(out_dir),
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        assert (out_dir / "api-design" / "plan.md").exists()
+
+    def test_explicit_file_path(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        out_file = tmp_path / "my-prompt.xml"
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "debug",
+            "--set", "ask=Fix the crash",
+            "-o", "xml", "-f", str(out_file),
+        ])
+        with patch("greenlit.cli.console.print"):
+            main()
+        assert out_file.exists()
+        assert "Fix the crash" in out_file.read_text()
+
+    def test_no_set_args_creates_empty_prompt(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["greenlit", "new", "-t", "action"])
+        with patch("greenlit.cli.console.print"):
+            main()
+        out = tmp_path / ".greenlit" / "action" / "action.md"
+        assert out.exists()
+
+    def test_file_outside_cwd_rejected(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        outside = str(tmp_path.parent / "evil.xml")
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action", "-f", outside,
+        ])
+        with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    def test_stdout_flag_writes_to_stdout_not_file(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "ask=Do the thing",
+            "-o", "xml", "--stdout",
+        ])
+        main()
+        captured = capsys.readouterr()
+        assert "<ask>" in captured.out
+        assert "Do the thing" in captured.out
+        assert not (tmp_path / ".greenlit").exists()
+
+    def test_stdin_read_with_dash(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "action",
+            "--set", "ask=-",
+            "-o", "xml", "--stdout",
+        ])
+        monkeypatch.setattr("sys.stdin", __import__("io").StringIO("From stdin content"))
+        main()
+        assert "From stdin content" in capsys.readouterr().out
+
+    def test_stdout_markdown_clean_output(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "greenlit", "new", "-t", "review",
+            "--set", "ask=Review auth PR",
+            "-o", "markdown", "--stdout",
+        ])
+        main()
+        out = capsys.readouterr().out
+        assert "## ASK" in out
+        assert "Review auth PR" in out
+        # Only the version comment should contain < — no rich markup
+        lines_with_angle = [ln for ln in out.splitlines() if "<" in ln and "greenlit" not in ln]
+        assert not lines_with_angle
+
+
+# ── greenlit list / show ──────────────────────────────────────────────────────
+
+class TestListShowSubcommands:
+    def _make_prompt(self, tmp_path, name, task_type, fmt="xml"):
+        prompt_dir = tmp_path / ".greenlit" / name
+        prompt_dir.mkdir(parents=True)
+        ext = "xml" if fmt == "xml" else "md"
+        content = f'<prompt type="{task_type}" greenlit="0.2"><ask>Test</ask></prompt>'
+        f = prompt_dir / f"{task_type}.{ext}"
+        f.write_text(content)
+        return f
+
+    def test_list_prints_saved_prompts(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        self._make_prompt(tmp_path, "auth-refactor", "action")
+        self._make_prompt(tmp_path, "api-design", "plan", "md")
+        monkeypatch.setattr(sys, "argv", ["greenlit", "list"])
+        main()
+        out = capsys.readouterr().out
+        assert "auth-refactor" in out
+        assert "api-design" in out
+
+    def test_list_empty_dir_prints_message(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["greenlit", "list"])
+        main()
+        out = capsys.readouterr().out
+        assert "not found" in out.lower() or "does not exist" in out.lower()
+
+    def test_show_prints_file_to_stdout(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        f = self._make_prompt(tmp_path, "auth-refactor", "action")
+        monkeypatch.setattr(sys, "argv", ["greenlit", "show", str(f)])
+        main()
+        out = capsys.readouterr().out
+        assert "<ask>" in out
+
+    def test_show_missing_file_exits_1(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["greenlit", "show", str(tmp_path / "nope.xml")])
+        with patch("greenlit.cli.console.print"), pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+
+# ── --lite walkthrough ────────────────────────────────────────────────────────
+
+class TestLiteWalkthrough:
+    def _lite_args(self, tmp_path):
+        return SimpleNamespace(
+            type="action", name="lite-test", output="markdown",
+            file=None, dir=str(tmp_path / ".greenlit"), copy=False,
+            no_editor=True, lite=True, stdout=False, private=False,
+        )
+
+    def test_lite_walks_only_ask_scope_done(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        seen = []
+
+        def record_header(section, guidance, step, total=None):
+            seen.append(section.key)
+
+        args = self._lite_args(tmp_path)
+        # skip through all three sections, then quit at the action menu
+        with patch("greenlit.cli.show_header"), \
+             patch("greenlit.cli.show_step_bar"), \
+             patch("greenlit.cli.show_section_header", side_effect=record_header), \
+             patch("greenlit.cli.show_tips"), \
+             patch("greenlit.cli.show_nav_help"), \
+             patch("greenlit.cli.show_output"), \
+             patch("greenlit.cli.show_transition"), \
+             patch("greenlit.cli.console.print"), \
+             patch("greenlit.cli.Prompt.ask", side_effect=["s", "s", "s", "quit"]):
+            run(args)
+
+        assert seen == ["ask", "scope", "done"]
+
+    def test_lite_total_count_is_three(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        totals = []
+
+        def record_total(section, guidance, step, total=None):
+            totals.append(total)
+
+        args = self._lite_args(tmp_path)
+        with patch("greenlit.cli.show_header"), \
+             patch("greenlit.cli.show_step_bar"), \
+             patch("greenlit.cli.show_section_header", side_effect=record_total), \
+             patch("greenlit.cli.show_tips"), \
+             patch("greenlit.cli.show_nav_help"), \
+             patch("greenlit.cli.show_output"), \
+             patch("greenlit.cli.show_transition"), \
+             patch("greenlit.cli.console.print"), \
+             patch("greenlit.cli.Prompt.ask", side_effect=["s", "s", "s", "quit"]):
+            run(args)
+
+        assert all(t == 3 for t in totals)

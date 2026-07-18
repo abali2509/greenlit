@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "greenlit"
-version = "0.1.0"
-description = "A CLI walkthrough that guides you through nine prompt sections with task-specific guidance at every step."
+version = "0.3.0"
+description = "The lightweight spec layer for medium-sized AI tasks: agent drafts, human reviews, agent verifies against DONE."
 readme = "README.md"
 license = "MIT"
 authors = [{name = "Abdullah Ali"}]
@@ -20,9 +20,6 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = ["rich>=13.0"]
-
-[project.optional-dependencies]
-templates = ["pyyaml>=6.0"]
 
 [project.scripts]
 greenlit = "greenlit.cli:main"

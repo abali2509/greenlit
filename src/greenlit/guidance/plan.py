@@ -2,6 +2,11 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Do not implement anything — the plan is the only output.",
+    "Surface assumptions and open questions explicitly rather than resolving them silently.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint=(
@@ -56,19 +61,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name the integration boundaries — what you own vs don't",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Break the design into sub-problems. Assign each to a specialist.",
-        placeholder=(
-            "Agent 1 — Task Graph: DAG structure and dependency resolution\n"
-            "Agent 2 — Executor: parallel execution engine\n"
-            "Agent 3 — Resilience: retry, timeout, failure handling"
-        ),
-        tips=[
-            "Fan-out to specialist agents, fan-in to a synthesiser",
-            "Define the interface contract between agents",
-            "Specify which agent has final say on trade-offs",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="Requirements, existing code, diagrams, constraints docs.",
         placeholder=(
@@ -117,6 +109,20 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name the thing that will bite you at 2am",
             "Mention dependencies that are flaky or poorly documented",
             "Flag assumptions that seem safe but might not be",
+        ],
+    ),
+    "done": SectionGuidance(
+        hint="A checklist that tells you the plan is complete and decision-ready.",
+        placeholder=(
+            "- Every component in scope has a defined interface contract.\n"
+            "- Each task has an owner and a rough estimate.\n"
+            "- Open questions are listed, not silently assumed.\n"
+            "- The design addresses every failure mode named in ATTENTION."
+        ),
+        tips=[
+            "For a plan, DONE is a completeness checklist, not a test command",
+            "Each item should be answerable yes/no by reading the deliverable",
+            "Include 'open questions surfaced' — a plan that hides gaps isn't done",
         ],
     ),
 }

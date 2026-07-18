@@ -46,6 +46,13 @@ Console.input = _rl_console_input
 
 console = Console()
 
+
+def use_stderr() -> None:
+    """Switch all console output to stderr (for --stdout pipeline mode)."""
+    global console
+    console = Console(stderr=True)
+
+
 # ── Colour constants ──────────────────────────────────────────────────
 ACCENT = "bright_green"
 DIM = "bright_black"
@@ -223,9 +230,10 @@ def show_task_selector(task_types: dict) -> str:
     return short_to_full.get(answer, answer)
 
 
-def show_step_bar(current: int, data: dict):
+def show_step_bar(current: int, data: dict, sections: list | None = None):
+    sections = sections if sections is not None else SECTIONS
     parts = []
-    for i, s in enumerate(SECTIONS):
+    for i, s in enumerate(sections):
         filled = bool(data.get(s.key, "").strip())
         if i == current:
             parts.append(f"[bold {ACCENT}]▸ {s.label}[/]")
@@ -238,11 +246,12 @@ def show_step_bar(current: int, data: dict):
     console.print()
 
 
-def show_section_header(section, guidance, step: int):
+def show_section_header(section, guidance, step: int, total: int | None = None):
     g = guidance
+    total = total if total is not None else len(SECTIONS)
 
     console.print(
-        f"  [{ACCENT} bold]{section.label}[/]  [{DIM}]{step + 1}/{len(SECTIONS)}[/]"
+        f"  [{ACCENT} bold]{section.label}[/]  [{DIM}]{step + 1}/{total}[/]"
     )
     console.print(f"  [{MUTED}]{section.tagline}[/]")
     console.print()
@@ -257,8 +266,9 @@ def show_section_header(section, guidance, step: int):
     console.print()
 
 
-def show_tips(tips: list[str]):
-    console.print(f"  [{DIM}]what makes this section land[/]")
+def show_tips(tips: list[str], review: bool = False):
+    heading = "check the draft against these" if review else "what makes this section land"
+    console.print(f"  [{DIM}]{heading}[/]")
     for tip in tips:
         console.print(f"  [{DIM}]→[/] [{MUTED}]{tip}[/]")
     console.print()

@@ -28,6 +28,11 @@ TASK_TYPES = {
         "short": "rs",
         "desc": "Spikes, investigations, trade-off analysis",
     },
+    "docs": {
+        "label": "Docs",
+        "short": "dc",
+        "desc": "Write, update, or restructure documentation",
+    },
 }
 
 
@@ -61,11 +66,6 @@ SECTIONS: list[Section] = [
     Section(
         key="scope", label="SCOPE", tagline="Hard boundaries. What's in, what's out."
     ),
-    Section(
-        key="delegation",
-        label="DELEGATION",
-        tagline="Agent roles for sub-tasks. Who does what.",
-    ),
     Section(key="inputs", label="INPUTS", tagline="What material is being provided?"),
     Section(
         key="outputs",
@@ -85,6 +85,11 @@ SECTIONS: list[Section] = [
             "- Restate the ask in one line for user inspection before starting.\n"
             "- If any clarification questions exist, ask them before starting work."
         ),
+    ),
+    Section(
+        key="done",
+        label="DONE",
+        tagline="Testable acceptance criteria. How the agent proves it's finished.",
     ),
 ]
 

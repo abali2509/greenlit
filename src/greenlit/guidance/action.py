@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Change nothing outside SCOPE.",
+    "Do not add or upgrade dependencies without flagging first.",
+    "If a DONE criterion cannot be met, stop and report — never redefine done.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint="What needs building, fixing, or changing? Concrete verb, concrete target.",
@@ -10,7 +16,7 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "retry logic and structured logging."
         ),
         tips=[
-            "One ask per prompt — split compound tasks into delegation",
+            "One ask per prompt — split compound tasks into separate prompts",
             "Include the 'shape' of the work: new file, refactor, extend, fix",
             "If fixing, describe the current broken behaviour",
         ],
@@ -50,19 +56,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "State what NOT to refactor, even if it looks tempting",
             "Clarify test expectations — unit? integration? both?",
             "Set boundaries around dependency changes",
-        ],
-    ),
-    "delegation": SectionGuidance(
-        hint="Split the implementation into parallel workstreams if compound.",
-        placeholder=(
-            "Agent 1 — Core: executor class and task scheduling\n"
-            "Agent 2 — Tests: unit tests against the interface contract\n"
-            "Agent 3 — Integration: wire up logging and metrics"
-        ),
-        tips=[
-            "Each agent should produce a testable artefact",
-            "Define the merge order — what depends on what?",
-            "Assign a 'lead' agent if work needs coordinating",
         ],
     ),
     "inputs": SectionGuidance(
@@ -113,6 +106,19 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name the function, the parameter, the edge case",
             "Include examples of what wrong behaviour looks like",
             "Mention things that pass tests but fail in production",
+        ],
+    ),
+    "done": SectionGuidance(
+        hint="Testable criteria that prove completion. Prefer runnable checks.",
+        placeholder=(
+            "- WHEN the suite runs, `pytest tests/test_executor.py` SHALL pass.\n"
+            "- WHEN linted, `ruff check src/` SHALL report no errors.\n"
+            "- WHEN 50 concurrent tasks are submitted, none SHALL be dropped."
+        ),
+        tips=[
+            "Write EARS-style: WHEN <condition>, the system SHALL <behavior>",
+            "Give the exact command to run — test, lint, build",
+            "Each criterion must be objectively checkable, not aspirational",
         ],
     ),
 }

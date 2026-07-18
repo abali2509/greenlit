@@ -1,14 +1,15 @@
-"""Output formatters: XML, Markdown, JSON."""
+"""Output formatters: XML, Markdown."""
 
 import html
-import json
 from collections.abc import Callable
 
 from greenlit.sections import SECTIONS
 
+_FORMAT_VERSION = "0.2"
+
 
 def format_xml(data: dict, task_type: str) -> str:
-    lines = [f'<prompt type="{task_type}">']
+    lines = [f'<prompt type="{task_type}" greenlit="{_FORMAT_VERSION}">']
     for s in SECTIONS:
         val = data.get(s.key, "").strip()
         if val:
@@ -22,7 +23,7 @@ def format_xml(data: dict, task_type: str) -> str:
 
 
 def format_markdown(data: dict, task_type: str) -> str:
-    lines = [f"# {task_type.upper()} PROMPT", ""]
+    lines = [f"# {task_type.upper()} PROMPT", f"<!-- greenlit: {_FORMAT_VERSION} -->", ""]
     for s in SECTIONS:
         val = data.get(s.key, "").strip()
         if val:
@@ -32,19 +33,9 @@ def format_markdown(data: dict, task_type: str) -> str:
     return "\n".join(lines)
 
 
-def format_json(data: dict, task_type: str) -> str:
-    obj: dict = {"type": task_type, "sections": {}}
-    for s in SECTIONS:
-        val = data.get(s.key, "").strip()
-        if val:
-            obj["sections"][s.key] = val
-    return json.dumps(obj, indent=2, sort_keys=True)
-
-
 FORMATTERS: dict[str, Callable[[dict, str], str]] = {
     "xml": format_xml,
     "markdown": format_markdown,
-    "json": format_json,
 }
 
 

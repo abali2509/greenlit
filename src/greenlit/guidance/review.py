@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Read-only: do not create, modify, or commit any files.",
+    "Report findings, do not fix them.",
+    "Every finding must reference a file and line.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint=(
@@ -60,20 +66,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "If it's a large PR, prioritise which files matter most",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Split the review into specialised passes if needed.",
-        placeholder=(
-            "Agent 1 — Correctness: logic, edge cases, error handling\n"
-            "Agent 2 — Patterns: conventions, dbt best practices\n"
-            "Agent 3 — Observability: logging, metrics, lineage"
-        ),
-        tips=[
-            "Each agent should have a clear, non-overlapping concern",
-            "Name the expertise each agent needs",
-            "Specify how agents should report — inline comments? summary? "
-            "severity?",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="The code, diffs, docs, and reference material the reviewer needs.",
         placeholder=(
@@ -122,6 +114,20 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Flag known bugs or tech debt near the change",
             "Mention areas where the code 'looks fine' but has bitten you",
             "Highlight recent production incidents related to this code",
+        ],
+    ),
+    "done": SectionGuidance(
+        hint="The checklist that says the review is complete and trustworthy.",
+        placeholder=(
+            "- Every file in SCOPE has been read, not skimmed.\n"
+            "- Each finding has a severity, a file:line, and a concrete fix.\n"
+            "- A clear verdict is given: approve / request changes / block.\n"
+            "- Every CONSTRAINT has been checked against the code."
+        ),
+        tips=[
+            "For a review, DONE is a coverage checklist — did you actually check everything?",
+            "Each item should be answerable yes/no",
+            "Include 'verdict given' so the review ends with a decision",
         ],
     ),
 }

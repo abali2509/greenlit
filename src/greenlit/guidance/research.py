@@ -2,6 +2,12 @@
 
 from greenlit.sections import SectionGuidance
 
+DEFAULT_CONSTRAINTS: list[str] = [
+    "Do not modify the codebase.",
+    "Distinguish verified fact from inference.",
+    "Cite sources for external claims.",
+]
+
 GUIDANCE: dict[str, SectionGuidance] = {
     "ask": SectionGuidance(
         hint=(
@@ -58,21 +64,6 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "Name options that are already off the table to avoid retreading",
         ],
     ),
-    "delegation": SectionGuidance(
-        hint="Split by research axis — each agent investigates a distinct angle.",
-        placeholder=(
-            "Agent 1 — Evaluate Temporal: feature fit, SDK quality, operational "
-            "complexity\n"
-            "Agent 2 — Benchmark: throughput and latency at our task volume\n"
-            "Agent 3 — Migration: effort estimate and risk assessment"
-        ),
-        tips=[
-            "Each agent should own a distinct research question",
-            "Define what 'done' looks like per agent — findings doc, benchmark "
-            "results, go/no-go",
-            "One agent should synthesise findings into a final recommendation",
-        ],
-    ),
     "inputs": SectionGuidance(
         hint="Existing docs, prior evaluations, benchmarks, source code to read.",
         placeholder=(
@@ -123,6 +114,20 @@ GUIDANCE: dict[str, SectionGuidance] = {
             "recency)",
             "Flag known unknowns — what might you not know you don't know?",
             "Mention past decisions that went wrong and what to avoid repeating",
+        ],
+    ),
+    "done": SectionGuidance(
+        hint="The checklist that says the research answers the question it set out to.",
+        placeholder=(
+            "- Every question in ASK has an evidence-backed answer.\n"
+            "- A recommendation is given with a stated confidence level.\n"
+            "- Trade-offs are captured in a matrix, not just prose.\n"
+            "- The suggested next step is explicit (prototype / adopt / defer)."
+        ),
+        tips=[
+            "For research, DONE proves the decision can now be made",
+            "Each item should be answerable yes/no by reading the deliverable",
+            "Include 'confidence level stated' — research without it isn't done",
         ],
     ),
 }
